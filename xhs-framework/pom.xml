@@ -19,8 +19,9 @@
     <description>平台基础设施层：封装一些常用功能，供各个业务线拿来即用</description>
 
     <modules>
-        <module>common</module>
-        <module>biz-operationlog</module>
+        <module>xhs-common</module>
+        <module>xhs-spring-boot-starter-biz-operationlog</module>
+        <module>xhs-spring-boot-starter-jackson</module>
     </modules>
 
     <dependencies>
