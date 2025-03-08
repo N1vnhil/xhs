@@ -33,6 +33,11 @@
             <groupId>org.n1vnhil</groupId>
             <artifactId>common</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.n1vnhil</groupId>
+            <artifactId>xhs-spring-boot-starter-biz-operationlog</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
