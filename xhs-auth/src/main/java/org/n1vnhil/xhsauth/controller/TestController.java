@@ -14,6 +14,7 @@ public class TestController {
     @PostMapping("/test2")
     @ApiOperationLog(description = "测试接口2")
     public Response<User> test2(@RequestBody User user) {
+        int i = 1 / 0;
         return Response.success(user);
     }
 }
