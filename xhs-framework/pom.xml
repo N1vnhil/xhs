@@ -36,6 +36,7 @@
             <artifactId>jackson-core</artifactId>
             <version>${jackson.version}</version>
         </dependency>
+
     </dependencies>
 
 </project>
