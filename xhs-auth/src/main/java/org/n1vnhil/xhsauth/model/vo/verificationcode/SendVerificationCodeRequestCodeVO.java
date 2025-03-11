@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SendVerificationCodeRequestCode {
+public class SendVerificationCodeRequestCodeVO {
 
     @NotNull(message = "手机号不能为空")
     private String phone;
