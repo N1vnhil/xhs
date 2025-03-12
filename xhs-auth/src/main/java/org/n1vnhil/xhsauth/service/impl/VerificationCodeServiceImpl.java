@@ -51,7 +51,8 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         taskExecutor.submit(() -> {
                     String signName = aliyunAccessKeyProperties.getSignName();
                     String templateCode = aliyunAccessKeyProperties.getTemplateCode();
-                    aliyunSmsSendHelper.sendMessage(signName, templateCode, phone, code);
+                    String templateParam = String.format("{\"code\":\"%s\"}", code);
+                    aliyunSmsSendHelper.sendMessage(signName, templateCode, phone, templateParam);
         });
         log.info("手机号：{}，验证码已发送【{}】", phone, code);
 
