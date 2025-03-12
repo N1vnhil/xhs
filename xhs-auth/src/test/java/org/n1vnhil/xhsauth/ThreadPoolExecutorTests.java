@@ -12,15 +12,15 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 public class ThreadPoolExecutorTests {
 
     @Resource
-    private ThreadPoolTaskExecutor threadPoolTaskExecutor;
+    private ThreadPoolTaskExecutor taskExecutor;
 
     /**
      * 测试线程池
      */
     @Test
     void testSubmit() {
-        threadPoolTaskExecutor.submit(() -> log.info("Thread 1"));
-        threadPoolTaskExecutor.submit(() -> log.info("Thread 2"));
+        taskExecutor.submit(() -> log.info("Thread 1"));
+        taskExecutor.submit(() -> log.info("Thread 2"));
     }
 
 }

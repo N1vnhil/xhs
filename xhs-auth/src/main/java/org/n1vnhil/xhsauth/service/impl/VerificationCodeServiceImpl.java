@@ -1,15 +1,20 @@
 package org.n1vnhil.xhsauth.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.A;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.xhsauth.constant.RedisKeyConstants;
 import org.n1vnhil.xhsauth.enums.ResponseCodeEnum;
 import org.n1vnhil.xhsauth.model.vo.verificationcode.SendVerificationCodeRequestCodeVO;
 import org.n1vnhil.xhsauth.service.VerificationCodeService;
+import org.n1vnhil.xhsauth.sms.AliyunAccessKeyProperties;
+import org.n1vnhil.xhsauth.sms.AliyunSmsSendHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
@@ -20,6 +25,15 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private ThreadPoolTaskExecutor taskExecutor;
+
+    @Autowired
+    private AliyunSmsSendHelper aliyunSmsSendHelper;
+
+    @Autowired
+    private AliyunAccessKeyProperties aliyunAccessKeyProperties;
 
     public Response<?> sendVerificationCode(SendVerificationCodeRequestCodeVO sendVerificationCodeRequestCodeVO) {
         // 检查缓存情况
@@ -34,7 +48,13 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         String code = RandomUtil.randomNumbers(6);
 
         // TODO: 发送验证码
+        taskExecutor.submit(() -> {
+                    String signName = aliyunAccessKeyProperties.getSignName();
+                    String templateCode = aliyunAccessKeyProperties.getTemplateCode();
+                    aliyunSmsSendHelper.sendMessage(signName, templateCode, phone, code);
+        });
         log.info("手机号：{}，验证码已发送【{}】", phone, code);
+
 
         redisTemplate.opsForValue().set(redisKey, code, 3, TimeUnit.MINUTES);
         return Response.success();

@@ -16,4 +16,8 @@ public class AliyunAccessKeyProperties {
 
     private String accessKeySecret;
 
+    private String signName;
+
+    private String templateCode;
+
 }
