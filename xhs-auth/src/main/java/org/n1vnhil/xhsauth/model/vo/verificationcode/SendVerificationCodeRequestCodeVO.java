@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.n1vnhil.framework.common.validator.PhoneNumber;
 
 @Data
 @Builder
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SendVerificationCodeRequestCodeVO {
 
+    @PhoneNumber
     @NotNull(message = "手机号不能为空")
     private String phone;
 
