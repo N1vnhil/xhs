@@ -13,6 +13,7 @@ import org.n1vnhil.xhsauth.service.VerificationCodeService;
 import org.n1vnhil.xhsauth.sms.AliyunAccessKeyProperties;
 import org.n1vnhil.xhsauth.sms.AliyunSmsSendHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
-    @Autowired
+    @Resource(name = "taskExecutor")
     private ThreadPoolTaskExecutor taskExecutor;
 
     @Autowired
@@ -47,7 +48,6 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         // 缓存验证码三分钟，同时发送验证码
         String code = RandomUtil.randomNumbers(6);
 
-        // TODO: 发送验证码
         taskExecutor.submit(() -> {
                     String signName = aliyunAccessKeyProperties.getSignName();
                     String templateCode = aliyunAccessKeyProperties.getTemplateCode();
