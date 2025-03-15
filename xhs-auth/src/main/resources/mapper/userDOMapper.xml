@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.n1vnhil.xhsauth.domain.mapper.UserDOMapper">
+
+    <insert id="insert" parameterType="org.n1vnhil.xhsauth.domain.dataobject.UserDO" useGeneratedKeys="true" keyProperty="id">
+        insert into t_user (xhs_id, password, nickname, avatar, birthday, background_img, phone, sex, status, introduction, create_time, update_time, deleted)
+        values (#{xhsId}, #{password}, #{nickname}, #{avatar}, #{birthday}, #{backgroundImg}, #{phone}, #{sex}, #{status}, #{introduction}, #{createTime}, #{updateTime}, #{deleted})
+    </insert>
+
+
+</mapper>
