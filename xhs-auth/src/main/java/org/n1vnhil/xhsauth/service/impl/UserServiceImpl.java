@@ -25,6 +25,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.n1vnhil.xhsauth.enums.LoginTypeEnum;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -43,6 +44,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserRoleDOMapper userRoleDOMapper;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     @Override
     public Response<String> loginAndRegister(UserLoginReqVO userLoginReqVO) {
@@ -90,37 +94,45 @@ public class UserServiceImpl implements UserService {
      * @param phone 用户手机号
      * @return 返回注册用户的id
      */
-    @Transactional(rollbackFor = Exception.class)
     public Long userRegister(String phone) {
-        Long xhsId = redisTemplate.opsForValue().increment(RedisKeyConstants.XHS_ID_GENERATE_KEY);
-        UserDO user = UserDO.builder()
-                .phone(phone)
-                .xhsId(String.valueOf(xhsId))
-                .nickname("小红薯" + xhsId)
-                .status(StatusEnum.ENABLE.getValue())
-                .deleted(DeletedEnum.NO.isDeleted())
-                .createTime(LocalDateTime.now())
-                .updateTime(LocalDateTime.now())
-                .build();
-        userDOMapper.insert(user);
-        Long userId = user.getId();
-        log.info("=========== 用户注册：{}, id：{} ===========", phone, userId);
+        return transactionTemplate.execute( status -> {
+            try {
+                Long xhsId = redisTemplate.opsForValue().increment(RedisKeyConstants.XHS_ID_GENERATE_KEY);
+                UserDO user = UserDO.builder()
+                        .phone(phone)
+                        .xhsId(String.valueOf(xhsId))
+                        .nickname("小红薯" + xhsId)
+                        .status(StatusEnum.ENABLE.getValue())
+                        .deleted(DeletedEnum.NO.isDeleted())
+                        .createTime(LocalDateTime.now())
+                        .updateTime(LocalDateTime.now())
+                        .build();
+                userDOMapper.insert(user);
+                Long userId = user.getId();
+                log.info("=========== 用户注册：{}, id：{} ===========", phone, userId);
 
-        UserRoleDO role = UserRoleDO.builder()
-                 .userId(userId)
-                 .roleId(RoleConstants.COMMON_USER_ROLE_ID)
-                 .createTime(LocalDateTime.now())
-                 .updateTime(LocalDateTime.now())
-                 .build();
-        userRoleDOMapper.insert(role);
+                UserRoleDO role = UserRoleDO.builder()
+                        .userId(userId)
+                        .roleId(RoleConstants.COMMON_USER_ROLE_ID)
+                        .createTime(LocalDateTime.now())
+                        .updateTime(LocalDateTime.now())
+                        .build();
+                userRoleDOMapper.insert(role);
 
-        // 缓存到redis
-        List<Long> roles = new ArrayList<>();
-        roles.add(RoleConstants.COMMON_USER_ROLE_ID);
-        String userRoleKey = RedisKeyConstants.buildVerificationCode(phone);
-        redisTemplate.opsForValue().set(userRoleKey, JsonUtils.toJsonString(roles));
+                // 缓存到redis
+                List<Long> roles = new ArrayList<>();
+                roles.add(RoleConstants.COMMON_USER_ROLE_ID);
+                String userRoleKey = RedisKeyConstants.buildVerificationCode(phone);
+                redisTemplate.opsForValue().set(userRoleKey, JsonUtils.toJsonString(roles));
 
-        return userId;
+                return userId;
+            } catch (Exception e) {
+                status.setRollbackOnly();
+                log.error("====> 用户注册异常：", e);
+                return null;
+            }
+        });
+
     }
 }
 
