@@ -113,6 +113,7 @@ public class UserServiceImpl implements UserService {
                 UserRoleDO role = UserRoleDO.builder()
                         .userId(userId)
                         .roleId(RoleConstants.COMMON_USER_ROLE_ID)
+                        .deleted(DeletedEnum.NO.isDeleted())
                         .createTime(LocalDateTime.now())
                         .updateTime(LocalDateTime.now())
                         .build();
