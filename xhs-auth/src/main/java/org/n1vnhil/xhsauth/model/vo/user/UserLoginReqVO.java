@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.n1vnhil.framework.common.validator.PhoneNumber;
 
 @Data
 @AllArgsConstructor
@@ -15,6 +16,8 @@ public class UserLoginReqVO {
     /**
      * 手机号
      * */
+    @PhoneNumber
+    @NotBlank(message = "手机号不能为空")
     private String phone;
 
 
@@ -31,6 +34,6 @@ public class UserLoginReqVO {
     /**
      * 登录方式，用户可选择通过密码或验证码登录
      * */
-    @NotBlank(message = "登录方式不能为空")
+    @NotNull(message = "登录方式不能为空")
     private Integer type;
 }
