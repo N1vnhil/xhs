@@ -11,7 +11,7 @@ import org.n1vnhil.framework.common.validator.PhoneNumber;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SendVerificationCodeRequestCodeVO {
+public class SendVerificationCodeReqCodeVO {
 
     @PhoneNumber
     @NotNull(message = "手机号不能为空")
