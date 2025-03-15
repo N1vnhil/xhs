@@ -23,7 +23,13 @@ public class RedisKeyConstants {
      * @param phone 用户手机号
      * @return 用户角色redis key
      */
-    private String buildUserRoleKey(String phone) {
+    private static String buildUserRoleKey(String phone) {
         return USER_ROLE_KEY_PREFIX + phone;
+    }
+
+    private static final String ROLE_PERMISSIONS_KEY_PREFIX = "role:permissions:";
+
+    public static String buildRolePermissionKey(Long roleId) {
+        return ROLE_PERMISSIONS_KEY_PREFIX + roleId;
     }
 }

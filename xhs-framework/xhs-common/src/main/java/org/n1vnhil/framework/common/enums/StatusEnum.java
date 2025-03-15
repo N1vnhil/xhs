@@ -10,8 +10,8 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum StatusEnum {
 
-    ENABLE(1),
-    DISABLE(0);
+    ENABLE(0),
+    DISABLE(1);
 
     public final Integer value;
 

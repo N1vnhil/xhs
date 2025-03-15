@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.n1vnhil.xhsauth.domain.mapper.PermissionDOMapper">
+
+    <select id="selectAppEnabledList" resultType="org.n1vnhil.xhsauth.domain.dataobject.PermissionDO">
+        select id, name, permission_key
+        from t_permission where status=0 and deleted=0 and type=3
+    </select>
+</mapper>
