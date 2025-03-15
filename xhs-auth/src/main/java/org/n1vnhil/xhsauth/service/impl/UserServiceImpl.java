@@ -3,6 +3,7 @@ package org.n1vnhil.xhsauth.service.impl;
 
 import cn.dev33.satoken.stp.SaTokenInfo;
 import cn.dev33.satoken.stp.StpUtil;
+import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
@@ -60,9 +61,7 @@ public class UserServiceImpl implements UserService {
         switch (loginTypeEnum) {
             case VERIFICATION_CODE -> {
                 String verificationCode = userLoginReqVO.getVerificationCode();
-                if(StringUtils.isBlank(verificationCode)) {
-                    return Response.fail(ResponseCodeEnum.PARAM_NOT_VALID);
-                }
+                Preconditions.checkArgument(StringUtils.isNotBlank(verificationCode), "验证码不能为空");
 
                 String key = RedisKeyConstants.buildVerificationCode(phone);
                 String sentCode = (String) redisTemplate.opsForValue().get(key);
