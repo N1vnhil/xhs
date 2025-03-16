@@ -54,7 +54,6 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         });
         log.info("手机号：{}，验证码已发送【{}】", phone, code);
 
-
         redisTemplate.opsForValue().set(redisKey, code, 3, TimeUnit.MINUTES);
         return Response.success();
     }

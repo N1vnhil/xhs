@@ -2,7 +2,7 @@ spring:
   application:
     name: xhs-auth # 应用名称
   profiles:
-    active: dev # 默认激活 dev 本地开发环境
+    active: dev, secret # 默认激活 dev 本地开发环境
   cloud:
     nacos:
       config:
