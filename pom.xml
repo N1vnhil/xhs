@@ -20,6 +20,7 @@
     <modules>
         <module>xhs-auth</module>
         <module>xhs-framework</module>
+        <module>xhs-gateway</module>
     </modules>
 
     <properties>
