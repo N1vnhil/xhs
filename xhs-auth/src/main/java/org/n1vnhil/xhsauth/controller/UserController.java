@@ -26,4 +26,10 @@ public class UserController {
         return userService.loginAndRegister(userLoginReqVO);
     }
 
+    @PostMapping("/logout")
+    @ApiOperationLog(description = "用户登出")
+    public Response<?> logout() {
+        // TODO
+        return Response.success();
+    }
 }
