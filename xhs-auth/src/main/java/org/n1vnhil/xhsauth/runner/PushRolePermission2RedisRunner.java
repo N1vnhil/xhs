@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -42,10 +43,18 @@ public class PushRolePermission2RedisRunner implements ApplicationRunner {
     @Autowired
     private RolePermissionDOMapper rolePermissionDOMapper;
 
+    private static final String PUSH_PERMISSION_FLAG = "push.permission.flag";
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
         log.info("=========== 缓存角色权限 ===========");
         try {
+            boolean canPush = redisTemplate.opsForValue().setIfAbsent(PUSH_PERMISSION_FLAG, "1", 1, TimeUnit.DAYS);
+            if(!canPush) {
+                log.info("=========== 角色权限已缓存 ===========");
+                return;
+            }
+
             // 获取所有角色
             List<RoleDO> roles = roleDOMapper.selectEnalbedRoles();
 
