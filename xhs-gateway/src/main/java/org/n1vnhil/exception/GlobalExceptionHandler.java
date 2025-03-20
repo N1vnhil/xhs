@@ -1,5 +1,6 @@
 package org.n1vnhil.exception;
 
+import cn.dev33.satoken.exception.NotPermissionException;
 import cn.dev33.satoken.exception.SaTokenContextException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import javax.security.auth.login.LoginException;
+
 @Slf4j
 @Component
 public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
@@ -28,11 +31,15 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
         log.info("=========> 网关全局异常捕获：{}", ex.getMessage());
 
         Response<?> result;
-        if(ex instanceof SaTokenContextException) {
-            // SaToken鉴权错误
+        if(ex instanceof LoginException) {
+            // 未登录
+            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            result = Response.fail(ResponseCodeEnum.UNAUTHORIZED.getErrorCode(), ex.getMessage());
+        } else if(ex instanceof NotPermissionException) {
+            // 无权限
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             result = Response.fail(ResponseCodeEnum.UNAUTHORIZED.getErrorCode(),
-                ResponseCodeEnum.UNAUTHORIZED.getErrorMessage());
+                    ResponseCodeEnum.UNAUTHORIZED.getErrorMessage());
         } else {
             // 其他错误
             result = Response.fail(ResponseCodeEnum.SYSTEM_ERROR);

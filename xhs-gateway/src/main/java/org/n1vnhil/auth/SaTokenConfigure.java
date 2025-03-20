@@ -1,5 +1,8 @@
 package org.n1vnhil.auth;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.NotRoleException;
 import cn.dev33.satoken.reactor.filter.SaReactorFilter;
 import cn.dev33.satoken.router.SaRouter;
 import cn.dev33.satoken.stp.StpUtil;
@@ -30,11 +33,24 @@ public class SaTokenConfigure {
 
                     SaRouter.match("/auth/user/logout", r -> StpUtil.checkRole("common_user"));
                 })
+
                 // 异常处理方法：每次setAuth函数出现异常时进入
                 .setError(e -> {
-                    return SaResult.error(e.getMessage());
-                })
-                ;
+                    // 未登录异常
+                    if(e instanceof NotLoginException) {
+                        throw new NotLoginException(e.getMessage(), null, null);
+                    }
+
+                    // 权限不足异常 / 不具备对应角色异常
+                    else if(e instanceof NotPermissionException || e instanceof NotRoleException) {
+                        throw new NotPermissionException(e.getMessage());
+                    }
+
+                    else {
+                        throw new RuntimeException(e.getMessage());
+                    }
+                });
+
     }
 
 }
