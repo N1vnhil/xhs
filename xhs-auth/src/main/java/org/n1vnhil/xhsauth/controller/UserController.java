@@ -7,10 +7,7 @@ import org.n1vnhil.xhsauth.model.vo.user.UserLoginReqVO;
 import org.n1vnhil.xhsauth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Slf4j
@@ -28,8 +25,9 @@ public class UserController {
 
     @PostMapping("/logout")
     @ApiOperationLog(description = "用户登出")
-    public Response<?> logout() {
-        // TODO
+    public Response<?> logout(@RequestHeader("userId") String userId) {
+        log.info("===========> 用户登出：{}", userId);
+        userService.logout(Long.valueOf(userId));
         return Response.success();
     }
 }

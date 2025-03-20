@@ -147,5 +147,11 @@ public class UserServiceImpl implements UserService {
             }
         });
     }
+
+    @Override
+    public Response<?> logout(Long userId) {
+        StpUtil.logout(userId);
+        return Response.success();
+    }
 }
 
