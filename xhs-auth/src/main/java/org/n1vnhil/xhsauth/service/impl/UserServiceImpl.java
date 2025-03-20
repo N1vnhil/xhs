@@ -13,8 +13,10 @@ import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhsauth.constant.RedisKeyConstants;
 import org.n1vnhil.xhsauth.constant.RoleConstants;
+import org.n1vnhil.xhsauth.domain.dataobject.RoleDO;
 import org.n1vnhil.xhsauth.domain.dataobject.UserDO;
 import org.n1vnhil.xhsauth.domain.dataobject.UserRoleDO;
+import org.n1vnhil.xhsauth.domain.mapper.RoleDOMapper;
 import org.n1vnhil.xhsauth.domain.mapper.UserDOMapper;
 import org.n1vnhil.xhsauth.domain.mapper.UserRoleDOMapper;
 import org.n1vnhil.xhsauth.enums.ResponseCodeEnum;
@@ -47,6 +49,9 @@ public class UserServiceImpl implements UserService {
     private UserRoleDOMapper userRoleDOMapper;
 
     @Autowired
+    private RoleDOMapper roleDOMapper;
+
+    @Autowired
     private TransactionTemplate transactionTemplate;
 
     @Override
@@ -70,7 +75,7 @@ public class UserServiceImpl implements UserService {
                     return Response.fail(ResponseCodeEnum.VERIFICATION_CODE_WRONG);
                 }
 
-                userId = Objects.isNull(user) ? userRegister(phone) : user.getId();
+                userId = Objects.isNull(user) ? registerUser(phone) : user.getId();
 
             }
 
@@ -93,46 +98,54 @@ public class UserServiceImpl implements UserService {
      * @param phone 用户手机号
      * @return 返回注册用户的id
      */
-    public Long userRegister(String phone) {
-        return transactionTemplate.execute( status -> {
+    private Long registerUser(String phone) {
+        return transactionTemplate.execute(status -> {
             try {
-                Long xhsId = redisTemplate.opsForValue().increment(RedisKeyConstants.XHS_ID_GENERATE_KEY);
-                UserDO user = UserDO.builder()
+                // 获取全局自增的小哈书 ID
+                Long xiaohashuId = redisTemplate.opsForValue().increment(RedisKeyConstants.XHS_ID_GENERATE_KEY);
+
+                UserDO userDO = UserDO.builder()
                         .phone(phone)
-                        .xhsId(String.valueOf(xhsId))
-                        .nickname("小红薯" + xhsId)
-                        .status(StatusEnum.ENABLE.getValue())
-                        .deleted(DeletedEnum.NO.isDeleted())
+                        .xhsId(String.valueOf(xiaohashuId)) // 自动生成小红书号 ID
+                        .nickname("小红薯" + xiaohashuId) // 自动生成昵称, 如：小红薯10000
+                        .status(StatusEnum.ENABLE.getValue()) // 状态为启用
                         .createTime(LocalDateTime.now())
                         .updateTime(LocalDateTime.now())
+                        .deleted(DeletedEnum.NO.isDeleted()) // 逻辑删除
                         .build();
-                userDOMapper.insert(user);
-                Long userId = user.getId();
-                log.info("=========== 用户注册：{}, id：{} ===========", phone, userId);
 
-                UserRoleDO role = UserRoleDO.builder()
+                // 添加入库
+                userDOMapper.insert(userDO);
+
+                // 获取刚刚添加入库的用户 ID
+                Long userId = userDO.getId();
+
+                // 给该用户分配一个默认角色
+                UserRoleDO userRoleDO = UserRoleDO.builder()
                         .userId(userId)
                         .roleId(RoleConstants.COMMON_USER_ROLE_ID)
-                        .deleted(DeletedEnum.NO.isDeleted())
                         .createTime(LocalDateTime.now())
                         .updateTime(LocalDateTime.now())
+                        .deleted(DeletedEnum.NO.isDeleted())
                         .build();
-                userRoleDOMapper.insert(role);
+                userRoleDOMapper.insert(userRoleDO);
 
-                // 缓存到redis
-                List<Long> roles = new ArrayList<>();
-                roles.add(RoleConstants.COMMON_USER_ROLE_ID);
-                String userRoleKey = RedisKeyConstants.buildVerificationCode(phone);
-                redisTemplate.opsForValue().set(userRoleKey, JsonUtils.toJsonString(roles));
+                RoleDO roleDO = roleDOMapper.selectById(RoleConstants.COMMON_USER_ROLE_ID);
+
+                // 将该用户的角色 ID 存入 Redis 中
+                List<String> roles = new ArrayList<>(1);
+                roles.add(roleDO.getRoleKey());
+
+                String userRolesKey = RedisKeyConstants.buildUserRoleKey(userId);
+                redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
 
                 return userId;
             } catch (Exception e) {
-                status.setRollbackOnly();
-                log.error("====> 用户注册异常：", e);
+                status.setRollbackOnly(); // 标记事务为回滚
+                log.error("==> 系统注册用户异常: ", e);
                 return null;
             }
         });
-
     }
 }
 

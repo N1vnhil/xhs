@@ -14,4 +14,7 @@ public interface RoleDOMapper {
      * */
     List<RoleDO> selectEnalbedRoles();
 
+    @Select("select * from t_role where id=#{id}")
+    RoleDO selectById(Long id);
+
 }

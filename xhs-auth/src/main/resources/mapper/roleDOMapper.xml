@@ -5,7 +5,7 @@
 <mapper namespace="org.n1vnhil.xhsauth.domain.mapper.RoleDOMapper">
 
     <select id="selectEnalbedRoles" resultType="org.n1vnhil.xhsauth.domain.dataobject.RoleDO">
-        select id, role_key, role_name from t_role where deleted=0 and status=0
+        select * from t_role where deleted=0 and status=0
     </select>
 
 </mapper>

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Slf4j
 @RequestMapping("/verification")
-public class VerificationCodeController {
+public class   VerificationCodeController {
 
     @Autowired
     private VerificationCodeService verificationCodeService;
