@@ -20,7 +20,7 @@ public class LoginUserContextFilter {
 
     public static Long getLoginUserId() {
         Object o = USER_LOGIN_CONTEXT_THREAD_LOCAL.get().get(GlobalConstants.USER_ID);
-        return Objects.isNull(o) ? null : Long.valueOf((String) o);
+        return Objects.isNull(o) ? null : Long.valueOf(o.toString());
     }
 
     public static void setLoginUserId(Long loginUserId) {
