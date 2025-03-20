@@ -3,6 +3,7 @@ package org.n1vnhil.xhsauth.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.n1vnhil.framework.biz.operationlog.aspect.ApiOperationLog;
 import org.n1vnhil.framework.common.response.Response;
+import org.n1vnhil.xhsauth.filter.LoginUserContextFilter;
 import org.n1vnhil.xhsauth.model.vo.user.UserLoginReqVO;
 import org.n1vnhil.xhsauth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +26,10 @@ public class UserController {
 
     @PostMapping("/logout")
     @ApiOperationLog(description = "用户登出")
-    public Response<?> logout(@RequestHeader("userId") String userId) {
+    public Response<?> logout() {
+        Long userId = LoginUserContextFilter.getLoginUserId();
         log.info("===========> 用户登出：{}", userId);
-        userService.logout(Long.valueOf(userId));
+        userService.logout(userId);
         return Response.success();
     }
 }
