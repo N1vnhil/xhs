@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.n1vnhil.framework.common.enums.DeletedEnum;
 import org.n1vnhil.framework.common.enums.StatusEnum;
+import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhsauth.constant.RedisKeyConstants;
@@ -66,6 +67,9 @@ public class UserServiceImpl implements UserService {
 
         UserDO user = userDOMapper.selectByPhone(phone);
         Long userId = null;
+        if(Objects.isNull(loginTypeEnum)) {
+            return Response.fail(ResponseCodeEnum.LOGIN_TYPE_WRONG);
+        }
 
         switch (loginTypeEnum) {
             case VERIFICATION_CODE -> {
@@ -85,6 +89,15 @@ public class UserServiceImpl implements UserService {
 
             case PASSWORD -> {
                 String password = userLoginReqVO.getPassword();
+                if(Objects.isNull(user)) {
+                    return Response.fail(ResponseCodeEnum.USER_NOT_FOUND);
+                }
+                String encodedPassword = user.getPassword();
+
+                if(!passwordEncoder.matches(password, encodedPassword)) {
+                    return Response.fail(ResponseCodeEnum.PASSWORD_OR_PHONE_WRONG);
+                }
+                userId = user.getId();
             }
 
             default -> {

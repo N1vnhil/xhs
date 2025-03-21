@@ -14,7 +14,10 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
 
     /** ================== 业务异常状态码 ================== **/
     VERIFICATION_CODE_SEND_FREQUENTLY("AUTH-20000", "请勿频繁申请验证码"),
-    VERIFICATION_CODE_WRONG("AUTH-20001", "验证码错误")
+    VERIFICATION_CODE_WRONG("AUTH-20001", "验证码错误"),
+    LOGIN_TYPE_WRONG("AUTH-20002", "登录类型错误"),
+    USER_NOT_FOUND("AUTH-20003", "该用户不存在"),
+    PASSWORD_OR_PHONE_WRONG("AUTH-20004", "手机号或密码错误")
     ;
 
     private final String errorCode;
