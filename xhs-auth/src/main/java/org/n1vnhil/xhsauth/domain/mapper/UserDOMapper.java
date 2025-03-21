@@ -13,4 +13,6 @@ public interface UserDOMapper {
 
     void insert(UserDO user);
 
+    void update(UserDO user);
+
 }

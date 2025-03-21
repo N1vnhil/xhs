@@ -9,5 +9,24 @@
         values (#{xhsId}, #{password}, #{nickname}, #{avatar}, #{birthday}, #{backgroundImg}, #{phone}, #{sex}, #{status}, #{introduction}, #{createTime}, #{updateTime}, #{deleted})
     </insert>
 
+    <update id="update" parameterType="org.n1vnhil.xhsauth.domain.dataobject.UserDO">
+        update t_user
+        <set>
+            <if test="xhsId != null">xhs_id = #{xhsId}, </if>
+            <if test="password != null">password = #{password}, </if>
+            <if test="nickname != null">nickname = #{nickname}, </if>
+            <if test="avatar != null">avatar = #{avatar}, </if>
+            <if test="birthday != null">birthday = #{birthday}, </if>
+            <if test="backgroundImg != null">background_img = #{backgroundImg}, </if>
+            <if test="phone != null">phone = #{phone}, </if>
+            <if test="sex != null">sex = #{sex}, </if>
+            <if test="status != null">status = #{status}, </if>
+            <if test="introduction != null">introduction = #{introduction}, </if>
+            <if test="updateTime != null">update_time = #{updateTime}, </if>
+            <if test="deleted != null">deleted = #{deleted}, </if>
+        </set>
+        where id=#{id}
+    </update>
+
 
 </mapper>

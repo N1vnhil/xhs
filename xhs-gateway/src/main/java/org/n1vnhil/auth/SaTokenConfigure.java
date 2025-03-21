@@ -32,6 +32,7 @@ public class SaTokenConfigure {
                     ;
 
                     SaRouter.match("/auth/user/logout", r -> StpUtil.checkRole("common_user"));
+                    SaRouter.match("/auth/user/editPassword", r -> StpUtil.checkRole("common_user"));
                 })
 
                 // 异常处理方法：每次setAuth函数出现异常时进入

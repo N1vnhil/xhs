@@ -20,14 +20,15 @@ import org.n1vnhil.xhsauth.domain.mapper.RoleDOMapper;
 import org.n1vnhil.xhsauth.domain.mapper.UserDOMapper;
 import org.n1vnhil.xhsauth.domain.mapper.UserRoleDOMapper;
 import org.n1vnhil.xhsauth.enums.ResponseCodeEnum;
+import org.n1vnhil.xhsauth.filter.LoginUserContextFilter;
+import org.n1vnhil.xhsauth.model.vo.user.UpdatePasswordReqVO;
 import org.n1vnhil.xhsauth.model.vo.user.UserLoginReqVO;
 import org.n1vnhil.xhsauth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.n1vnhil.xhsauth.enums.LoginTypeEnum;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
@@ -53,6 +54,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public Response<String> loginAndRegister(UserLoginReqVO userLoginReqVO) {
@@ -151,6 +155,22 @@ public class UserServiceImpl implements UserService {
     @Override
     public Response<?> logout(Long userId) {
         StpUtil.logout(userId);
+        return Response.success();
+    }
+
+    @Override
+    public Response<?> updatePassword(UpdatePasswordReqVO updatePasswordReqVO) {
+        Long userId = LoginUserContextFilter.getLoginUserId();
+        String newPassword = updatePasswordReqVO.getPassword();
+        String encodedPassword = passwordEncoder.encode(newPassword);
+
+        UserDO user = UserDO.builder()
+                .id(userId)
+                .password(encodedPassword)
+                .updateTime(LocalDateTime.now())
+                .build();
+
+        userDOMapper.update(user);
         return Response.success();
     }
 }
