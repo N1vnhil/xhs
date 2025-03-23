@@ -13,10 +13,12 @@ public class FileServiceImpl implements FileService {
     @Resource
     private FileStrategy fileStrategy;
 
+    private static final String BUCKET_NAME = "xhs";
+
     @Override
     public Response<?> uploadFile(MultipartFile file) {
-        fileStrategy.uploadFile(file, "xhs");
-        return Response.success();
+        String url = fileStrategy.uploadFile(file, BUCKET_NAME);
+        return Response.success(url);
     }
 
 }
