@@ -22,6 +22,7 @@
         <module>xhs-common</module>
         <module>xhs-spring-boot-starter-biz-operationlog</module>
         <module>xhs-spring-boot-starter-jackson</module>
+        <module>xhs-spring-boot-starter-context</module>
     </modules>
 
     <dependencies>

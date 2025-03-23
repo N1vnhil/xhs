@@ -77,7 +77,7 @@
         <!-- 上下文组件 -->
         <dependency>
             <groupId>org.n1vnhil</groupId>
-            <artifactId>xhs-spring-boot-starter-biz-context</artifactId>
+            <artifactId>xhs-spring-boot-starter-context</artifactId>
         </dependency>
 
         <!-- Jackson 组件 -->

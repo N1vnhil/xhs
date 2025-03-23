@@ -126,6 +126,12 @@
 
             <dependency>
                 <groupId>org.n1vnhil</groupId>
+                <artifactId>xhs-spring-boot-starter-context</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.n1vnhil</groupId>
                 <artifactId>xhs-spring-boot-starter-jackson</artifactId>
                 <version>${revision}</version>
             </dependency>
