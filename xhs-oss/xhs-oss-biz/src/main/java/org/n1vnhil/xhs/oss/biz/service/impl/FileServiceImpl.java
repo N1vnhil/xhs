@@ -13,7 +13,7 @@ public class FileServiceImpl implements FileService {
     @Resource
     private FileStrategy fileStrategy;
 
-    private static final String BUCKET_NAME = "xhs";
+    private static final String BUCKET_NAME = "xhs-n1vnhil";
 
     @Override
     public Response<?> uploadFile(MultipartFile file) {

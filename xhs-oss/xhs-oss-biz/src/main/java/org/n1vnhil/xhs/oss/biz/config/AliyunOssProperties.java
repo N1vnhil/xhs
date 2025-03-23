@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 @Component
 @Data
 @ConfigurationProperties(prefix = "storage.aliyun-oss")
-public class AliyuOssProperties {
+public class AliyunOssProperties {
     private String endpoint;
-    private String accessKeyId;
-    private String accessKeySecret;
+    private String accessKey;
+    private String secretKey;
 }
