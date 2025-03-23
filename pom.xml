@@ -24,6 +24,8 @@
         <module>xhs-oss</module>
         <module>xhs-oss/xhs-oss-api</module>
         <module>xhs-oss/xhs-oss-biz</module>
+        <module>xhs-user</module>
+        <module>xhs-user/xhs-user-biz</module>
     </modules>
 
     <properties>
