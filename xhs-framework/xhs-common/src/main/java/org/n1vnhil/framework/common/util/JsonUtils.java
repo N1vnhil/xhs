@@ -1,17 +1,10 @@
 package org.n1vnhil.framework.common.util;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.SneakyThrows;
-import org.n1vnhil.framework.common.constant.DateConstants;
-
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class JsonUtils {
 
