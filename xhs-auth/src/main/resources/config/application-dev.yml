@@ -52,5 +52,5 @@ spring:
 
 logging:
   level:
-    com.quanxiaoha.xiaohashu.auth.domain.mapper: debug
+    org.n1vnhil.xhsauth.domain.mapper: debug
     org.springframework.data.redis: debug
