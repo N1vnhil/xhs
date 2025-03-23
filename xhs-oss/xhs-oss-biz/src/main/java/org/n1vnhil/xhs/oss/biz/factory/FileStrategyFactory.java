@@ -6,10 +6,11 @@ import org.n1vnhil.xhs.oss.biz.strategy.FileStrategy;
 import org.n1vnhil.xhs.oss.biz.strategy.impl.AliyunOSSFileStrategy;
 import org.n1vnhil.xhs.oss.biz.strategy.impl.MinioFileStrategy;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-
+@RefreshScope
 @Configuration
 public class FileStrategyFactory {
 
@@ -17,6 +18,7 @@ public class FileStrategyFactory {
     private String strategyType;
 
     @Bean
+    @RefreshScope
     public FileStrategy fileStrategy() {
         if(StringUtils.equals(strategyType, "aliyun")) return new AliyunOSSFileStrategy();
         else if(StringUtils.equals(strategyType, "minio")) return new MinioFileStrategy();
