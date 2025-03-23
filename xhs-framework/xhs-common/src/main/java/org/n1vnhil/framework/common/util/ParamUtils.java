@@ -20,18 +20,16 @@ public final class ParamUtils {
 
     /**
      * 小哈书 ID 校验
-     *
-     * @param xiaohashuId
      * @return
      */
-    public static boolean checkXiaohashuId(String xiaohashuId) {
+    public static boolean checkXhsId(String xhsId) {
         // 检查长度
-        if (xiaohashuId.length() < ID_MIN_LENGTH || xiaohashuId.length() > ID_MAX_LENGTH) {
+        if (xhsId.length() < ID_MIN_LENGTH || xhsId.length() > ID_MAX_LENGTH) {
             return false;
         }
         // 检查格式
         Pattern pattern = Pattern.compile(ID_REGEX);
-        return pattern.matcher(xiaohashuId).matches();
+        return pattern.matcher(xhsId).matches();
     }
 
     /**

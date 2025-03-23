@@ -1,10 +1,20 @@
 package org.n1vnhil.xhs.user.biz.model.vo;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.LocalDate;
 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class UpdateUserReqVO {
 
-    private String avatar;
+    private MultipartFile avatar;
 
     private String nickname;
 
@@ -12,7 +22,7 @@ public class UpdateUserReqVO {
 
     private LocalDate birthday;
 
-    private String backgroundImg;
+    private MultipartFile backgroundImg;
 
     private Integer sex;
 

@@ -85,5 +85,10 @@
             <groupId>org.n1vnhil</groupId>
             <artifactId>xhs-spring-boot-starter-jackson</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
     </dependencies>
 </project>
