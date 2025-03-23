@@ -1,1 +1,2 @@
 org.n1vnhil.framework.context.config.ContextAutoConfiguration
+org.n1vnhil.framework.context.config.FeignContextAutoConfiguration
