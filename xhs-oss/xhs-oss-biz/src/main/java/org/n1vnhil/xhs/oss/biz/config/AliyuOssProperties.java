@@ -1,15 +1,14 @@
 package org.n1vnhil.xhs.oss.biz.config;
 
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@ConfigurationProperties(prefix = "storage.minio")
 @Component
 @Data
-public class MinioProperties {
+@ConfigurationProperties(prefix = "storage.aliyun-oss")
+public class AliyuOssProperties {
     private String endpoint;
-    private String accessKey;
-    private String secretKey;
+    private String accessKeyId;
+    private String accessKeySecret;
 }
