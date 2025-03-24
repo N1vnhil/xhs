@@ -25,7 +25,4 @@ public class CassandraTest {
         noteContentRepository.save(noteContentDO);
     }
 
-    public void testSelect() {
-
-    }
 }

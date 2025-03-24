@@ -51,5 +51,10 @@
             <artifactId>spring-boot-starter-data-cassandra</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.n1vnhil</groupId>
+            <artifactId>xhs-kv-api</artifactId>
+        </dependency>
+
     </dependencies>
 </project>

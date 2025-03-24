@@ -246,6 +246,12 @@
                 <version>${revision}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.n1vnhil</groupId>
+                <artifactId>xhs-kv-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
             <!-- Feign 表单提交 -->
             <dependency>
                 <groupId>io.github.openfeign.form</groupId>
