@@ -23,7 +23,9 @@ import org.n1vnhil.xhs.user.biz.enums.ResponseCodeEnum;
 import org.n1vnhil.xhs.user.biz.model.vo.UpdateUserReqVO;
 import org.n1vnhil.xhs.user.biz.rpc.OssRpcService;
 import org.n1vnhil.xhs.user.biz.service.UserService;
+import org.n1vnhil.xhs.user.dto.req.FindUserByPhoneReqDTO;
 import org.n1vnhil.xhs.user.dto.req.RegisterUserReqDTO;
+import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -54,6 +56,11 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private RoleDOMapper roleDOMapper;
 
+    /**
+     * 更新用户信息
+     * @param updateUserReqVO
+     * @return
+     */
     @Override
     public Response<?> updateUserInfo(UpdateUserReqVO updateUserReqVO) {
         UserDO user = new UserDO();
@@ -125,6 +132,11 @@ public class UserServiceImpl implements UserService {
         return Response.success();
     }
 
+    /**
+     * 用户注册
+     * @param registerUserReqDTO
+     * @return
+     */
     @Override
     public Response<Long> register(RegisterUserReqDTO registerUserReqDTO) {
         String phone = registerUserReqDTO.getPhone();
@@ -171,5 +183,26 @@ public class UserServiceImpl implements UserService {
         redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
 
         return Response.success(userId);
+    }
+
+    /**
+     * 根据手机号查询用户信息
+     * @param findUserByPhoneReqDTO
+     * @return
+     */
+    @Override
+    public Response<FindUserByPhoneRspDTO> findUserByPhone(FindUserByPhoneReqDTO findUserByPhoneReqDTO) {
+        String phone = findUserByPhoneReqDTO.getPhone();
+        UserDO user = userMapper.selectByPhone(phone);
+
+        if(Objects.isNull(user)) {
+            throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
+        }
+
+        FindUserByPhoneRspDTO response = FindUserByPhoneRspDTO.builder()
+                .id(user.getId())
+                .password(user.getPassword())
+                .build();
+        return Response.success(response);
     }
 }

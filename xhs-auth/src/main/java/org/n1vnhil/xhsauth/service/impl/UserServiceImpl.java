@@ -12,6 +12,7 @@ import org.n1vnhil.framework.common.enums.StatusEnum;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.framework.common.util.JsonUtils;
+import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.n1vnhil.xhsauth.constant.RedisKeyConstants;
 import org.n1vnhil.xhsauth.constant.RoleConstants;
 import org.n1vnhil.xhsauth.domain.dataobject.RoleDO;
@@ -69,7 +70,6 @@ public class UserServiceImpl implements UserService {
         Integer type = userLoginReqVO.getType();
         LoginTypeEnum loginTypeEnum = LoginTypeEnum.valueOf(type);
 
-        UserDO user = userDOMapper.selectByPhone(phone);
         Long userId = null;
         if(Objects.isNull(loginTypeEnum)) {
             return Response.fail(ResponseCodeEnum.LOGIN_TYPE_WRONG);
@@ -93,6 +93,7 @@ public class UserServiceImpl implements UserService {
             }
 
             case PASSWORD -> {
+                FindUserByPhoneRspDTO user = userRpcService.findUserByPhone(phone);
                 String password = userLoginReqVO.getPassword();
                 if(Objects.isNull(user)) {
                     return Response.fail(ResponseCodeEnum.USER_NOT_FOUND);
