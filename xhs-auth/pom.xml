@@ -126,6 +126,11 @@
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.n1vnhil</groupId>
+            <artifactId>xhs-user-api</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

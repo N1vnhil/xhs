@@ -24,6 +24,7 @@ import org.n1vnhil.xhsauth.enums.ResponseCodeEnum;
 import org.n1vnhil.xhsauth.filter.LoginUserContextFilter;
 import org.n1vnhil.xhsauth.model.vo.user.UpdatePasswordReqVO;
 import org.n1vnhil.xhsauth.model.vo.user.UserLoginReqVO;
+import org.n1vnhil.xhsauth.rpc.UserRpcService;
 import org.n1vnhil.xhsauth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -59,6 +60,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private UserRpcService userRpcService;
+
     @Override
     public Response<String> loginAndRegister(UserLoginReqVO userLoginReqVO) {
         String phone = userLoginReqVO.getPhone();
@@ -83,7 +87,8 @@ public class UserServiceImpl implements UserService {
                     return Response.fail(ResponseCodeEnum.VERIFICATION_CODE_WRONG);
                 }
 
-                userId = Objects.isNull(user) ? registerUser(phone) : user.getId();
+                userId = userRpcService.registerUser(phone);
+                if(Objects.isNull(userId)) throw new BizException(ResponseCodeEnum.LOGIN_FAIL);
 
             }
 

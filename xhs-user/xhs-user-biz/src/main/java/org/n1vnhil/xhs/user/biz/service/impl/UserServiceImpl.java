@@ -1,28 +1,38 @@
 package org.n1vnhil.xhs.user.biz.service.impl;
 
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
-import com.alibaba.nacos.shaded.io.grpc.netty.shaded.io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.ibatis.annotations.Param;
+import org.n1vnhil.framework.common.enums.DeletedEnum;
+import org.n1vnhil.framework.common.enums.StatusEnum;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
+import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.framework.common.util.ParamUtils;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
-import org.n1vnhil.xhs.oss.api.FileFeignApi;
+import org.n1vnhil.xhs.user.biz.constant.RedisKeyConstants;
+import org.n1vnhil.xhs.user.biz.constant.RoleConstants;
+import org.n1vnhil.xhs.user.biz.domain.dataobject.RoleDO;
 import org.n1vnhil.xhs.user.biz.domain.dataobject.UserDO;
+import org.n1vnhil.xhs.user.biz.domain.dataobject.UserRoleDO;
+import org.n1vnhil.xhs.user.biz.domain.mapper.RoleDOMapper;
 import org.n1vnhil.xhs.user.biz.domain.mapper.UserMapper;
+import org.n1vnhil.xhs.user.biz.domain.mapper.UserRoleDOMapper;
 import org.n1vnhil.xhs.user.biz.enums.GenderEnum;
 import org.n1vnhil.xhs.user.biz.enums.ResponseCodeEnum;
 import org.n1vnhil.xhs.user.biz.model.vo.UpdateUserReqVO;
 import org.n1vnhil.xhs.user.biz.rpc.OssRpcService;
 import org.n1vnhil.xhs.user.biz.service.UserService;
+import org.n1vnhil.xhs.user.dto.req.RegisterUserReqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -35,6 +45,16 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private OssRpcService ossRpcService;
 
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private UserRoleDOMapper userRoleDOMapper;
+
+    @Autowired
+    private RoleDOMapper roleDOMapper;
+
+    @Override
     public Response<?> updateUserInfo(UpdateUserReqVO updateUserReqVO) {
         UserDO user = new UserDO();
         user.setId(LoginUserContextHolder.getLoginUserId());
@@ -105,4 +125,51 @@ public class UserServiceImpl implements UserService {
         return Response.success();
     }
 
+    @Override
+    public Response<Long> register(RegisterUserReqDTO registerUserReqDTO) {
+        String phone = registerUserReqDTO.getPhone();
+        UserDO user = userMapper.selectByPhone(phone);
+        log.info("==========> 用户注册，手机号：{}", phone);
+        if(Objects.nonNull(user)) return Response.success(user.getId());
+
+
+        Long xhsId = redisTemplate.opsForValue().increment(RedisKeyConstants.XHS_ID_GENERATE_KEY);
+
+        UserDO userDO = UserDO.builder()
+                .phone(phone)
+                .xhsId(String.valueOf(xhsId)) // 自动生成小红书号 ID
+                .nickname("小红薯" + xhsId) // 自动生成昵称, 如：小红薯10000
+                .status(StatusEnum.ENABLE.getValue()) // 状态为启用
+                .createTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .deleted(DeletedEnum.NO.isDeleted()) // 逻辑删除
+                .build();
+
+        // 添加入库
+        userMapper.insert(userDO);
+
+        // 获取刚刚添加入库的用户 ID
+        Long userId = userDO.getId();
+
+        // 给该用户分配一个默认角色
+        UserRoleDO userRoleDO = UserRoleDO.builder()
+                .userId(userId)
+                .roleId(RoleConstants.COMMON_USER_ROLE_ID)
+                .createTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .deleted(DeletedEnum.NO.isDeleted())
+                .build();
+        userRoleDOMapper.insert(userRoleDO);
+
+        RoleDO roleDO = roleDOMapper.selectById(RoleConstants.COMMON_USER_ROLE_ID);
+
+        // 将该用户的角色 ID 存入 Redis 中
+        List<String> roles = new ArrayList<>(1);
+        roles.add(roleDO.getRoleKey());
+
+        String userRolesKey = RedisKeyConstants.buildUserRoleKey(userId);
+        redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
+
+        return Response.success(userId);
+    }
 }

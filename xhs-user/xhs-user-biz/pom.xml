@@ -95,5 +95,22 @@
             <groupId>org.n1vnhil</groupId>
             <artifactId>xhs-oss-api</artifactId>
         </dependency>
+
+        <!-- Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Redis 连接池 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.n1vnhil</groupId>
+            <artifactId>xhs-user-api</artifactId>
+        </dependency>
     </dependencies>
 </project>
