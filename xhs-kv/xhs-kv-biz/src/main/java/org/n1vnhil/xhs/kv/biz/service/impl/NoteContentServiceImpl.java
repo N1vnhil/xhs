@@ -9,6 +9,7 @@ import org.n1vnhil.xhs.kv.biz.domain.repository.NoteContentRepository;
 import org.n1vnhil.xhs.kv.biz.enums.ResponseCodeEnum;
 import org.n1vnhil.xhs.kv.biz.service.NoteContentService;
 import org.n1vnhil.xhs.kv.dto.req.AddNoteContentReqDTO;
+import org.n1vnhil.xhs.kv.dto.req.DeleteNoteContentDTO;
 import org.n1vnhil.xhs.kv.dto.req.FindNoteContentReqDTO;
 import org.n1vnhil.xhs.kv.dto.rsp.FindNoteContentRspDTO;
 import org.springframework.stereotype.Service;
@@ -53,5 +54,13 @@ public class NoteContentServiceImpl implements NoteContentService {
                 .build();
 
         return Response.success(findNoteContentRspDTO);
+    }
+
+    @Override
+    public Response<?> deleteNoteContent(DeleteNoteContentDTO deleteNoteContentDTO) {
+        log.info("==========> 删除笔记：{}", deleteNoteContentDTO);
+        UUID uuid = UUID.fromString(deleteNoteContentDTO.getNoteId());
+        noteContentRepository.deleteById(uuid);
+        return Response.success();
     }
 }

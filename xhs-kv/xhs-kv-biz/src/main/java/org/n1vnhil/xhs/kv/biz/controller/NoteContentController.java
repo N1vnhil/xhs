@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.xhs.kv.biz.service.NoteContentService;
 import org.n1vnhil.xhs.kv.dto.req.AddNoteContentReqDTO;
+import org.n1vnhil.xhs.kv.dto.req.DeleteNoteContentDTO;
 import org.n1vnhil.xhs.kv.dto.req.FindNoteContentReqDTO;
 import org.n1vnhil.xhs.kv.dto.rsp.FindNoteContentRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,11 @@ public class NoteContentController {
     @PostMapping("/note/content/find")
     public Response<FindNoteContentRspDTO> findNote(@RequestBody @Validated FindNoteContentReqDTO findNoteContentReqDTO) {
         return noteContentService.findNoteContent(findNoteContentReqDTO);
+    }
+
+    @PostMapping("/note/content/delete")
+    public Response<?> deleteNote(@RequestBody @Validated DeleteNoteContentDTO deleteNoteContentDTO) {
+        return noteContentService.deleteNoteContent(deleteNoteContentDTO);
     }
 
 }
