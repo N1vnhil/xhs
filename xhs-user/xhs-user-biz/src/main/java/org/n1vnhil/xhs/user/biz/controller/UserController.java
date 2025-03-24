@@ -7,6 +7,7 @@ import org.n1vnhil.xhs.user.biz.model.vo.UpdateUserReqVO;
 import org.n1vnhil.xhs.user.biz.service.UserService;
 import org.n1vnhil.xhs.user.dto.req.FindUserByPhoneReqDTO;
 import org.n1vnhil.xhs.user.dto.req.RegisterUserReqDTO;
+import org.n1vnhil.xhs.user.dto.req.UpdateUserPasswordReqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -36,4 +37,11 @@ public class UserController {
     public Response<?> getUserByPhone(@Validated @RequestBody FindUserByPhoneReqDTO findUserByPhoneReqDTO) {
         return userService.findUserByPhone(findUserByPhoneReqDTO);
     }
+
+    @PostMapping("/password/update")
+    @ApiOperationLog(description = "更新密码")
+    public Response<?> updatePassword(@Validated @RequestBody UpdateUserPasswordReqDTO updateUserPasswordReqDTO) {
+        return userService.editPassword(updateUserPasswordReqDTO);
+    }
+
 }

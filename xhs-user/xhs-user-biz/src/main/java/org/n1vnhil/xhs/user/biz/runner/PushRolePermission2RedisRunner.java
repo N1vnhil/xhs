@@ -1,32 +1,26 @@
-package org.n1vnhil.xhsauth.runner;
+package org.n1vnhil.xhs.user.biz.runner;
 
 import cn.hutool.core.collection.CollUtil;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.protobuf.MapEntry;
+import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
+import com.alibaba.nacos.shaded.com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.annotations.Param;
-import org.checkerframework.checker.units.qual.A;
 import org.n1vnhil.framework.common.util.JsonUtils;
-import org.n1vnhil.xhsauth.constant.RedisKeyConstants;
-import org.n1vnhil.xhsauth.domain.dataobject.PermissionDO;
-import org.n1vnhil.xhsauth.domain.dataobject.RoleDO;
-import org.n1vnhil.xhsauth.domain.dataobject.RolePermissionDO;
-import org.n1vnhil.xhsauth.domain.mapper.PermissionDOMapper;
-import org.n1vnhil.xhsauth.domain.mapper.RoleDOMapper;
-import org.n1vnhil.xhsauth.domain.mapper.RolePermissionDOMapper;
+import org.n1vnhil.xhs.user.biz.constant.RedisKeyConstants;
+import org.n1vnhil.xhs.user.biz.domain.dataobject.PermissionDO;
+import org.n1vnhil.xhs.user.biz.domain.dataobject.RoleDO;
+import org.n1vnhil.xhs.user.biz.domain.dataobject.RolePermissionDO;
+import org.n1vnhil.xhs.user.biz.domain.mapper.PermissionDOMapper;
+import org.n1vnhil.xhs.user.biz.domain.mapper.RoleDOMapper;
+import org.n1vnhil.xhs.user.biz.domain.mapper.RolePermissionDOMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Component
@@ -36,8 +30,7 @@ public class PushRolePermission2RedisRunner implements ApplicationRunner {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
-    @Autowired
-    private PermissionDOMapper permissionDOMapper;
+    private static final String PUSH_PERMISSION_FLAG = "push.permission.flag";
 
     @Autowired
     private RoleDOMapper roleDOMapper;
@@ -45,7 +38,8 @@ public class PushRolePermission2RedisRunner implements ApplicationRunner {
     @Autowired
     private RolePermissionDOMapper rolePermissionDOMapper;
 
-    private static final String PUSH_PERMISSION_FLAG = "push.permission.flag";
+    @Autowired
+    private PermissionDOMapper permissionDOMapper;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -62,7 +56,7 @@ public class PushRolePermission2RedisRunner implements ApplicationRunner {
             }
 
             // 查询出所有角色
-            List<RoleDO> roleDOS = roleDOMapper.selectEnalbedRoles();
+            List<RoleDO> roleDOS = roleDOMapper.selectEnabledRoles();
 
             if (CollUtil.isNotEmpty(roleDOS)) {
                 // 拿到所有角色的 ID

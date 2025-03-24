@@ -5,6 +5,7 @@ import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.xhs.user.api.UserFeignApi;
 import org.n1vnhil.xhs.user.dto.req.FindUserByPhoneReqDTO;
 import org.n1vnhil.xhs.user.dto.req.RegisterUserReqDTO;
+import org.n1vnhil.xhs.user.dto.req.UpdateUserPasswordReqDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -34,5 +35,12 @@ public class UserRpcService {
                 .build();
         Response<FindUserByPhoneRspDTO> response = userFeignApi.findByPhone(findUserByPhoneReqDTO);
         return response.isSuccess() ? response.getData() : null;
+    }
+
+    public void updateUserPassword(String password) {
+        UpdateUserPasswordReqDTO updateUserPasswordReqDTO = UpdateUserPasswordReqDTO.builder()
+                .encodedPassword(password)
+                .build();
+        Response<?> response = userFeignApi.updatePassword(updateUserPasswordReqDTO);
     }
 }

@@ -15,18 +15,12 @@ import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.n1vnhil.xhsauth.constant.RedisKeyConstants;
 import org.n1vnhil.xhsauth.constant.RoleConstants;
-import org.n1vnhil.xhsauth.domain.dataobject.RoleDO;
-import org.n1vnhil.xhsauth.domain.dataobject.UserDO;
-import org.n1vnhil.xhsauth.domain.dataobject.UserRoleDO;
-import org.n1vnhil.xhsauth.domain.mapper.RoleDOMapper;
-import org.n1vnhil.xhsauth.domain.mapper.UserDOMapper;
-import org.n1vnhil.xhsauth.domain.mapper.UserRoleDOMapper;
 import org.n1vnhil.xhsauth.enums.ResponseCodeEnum;
 import org.n1vnhil.xhsauth.filter.LoginUserContextFilter;
 import org.n1vnhil.xhsauth.model.vo.user.UpdatePasswordReqVO;
 import org.n1vnhil.xhsauth.model.vo.user.UserLoginReqVO;
 import org.n1vnhil.xhsauth.rpc.UserRpcService;
-import org.n1vnhil.xhsauth.service.UserService;
+import org.n1vnhil.xhsauth.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,22 +35,10 @@ import java.util.Objects;
 
 @Service
 @Slf4j
-public class UserServiceImpl implements UserService {
+public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
-
-    @Autowired
-    private UserDOMapper userDOMapper;
-
-    @Autowired
-    private UserRoleDOMapper userRoleDOMapper;
-
-    @Autowired
-    private RoleDOMapper roleDOMapper;
-
-    @Autowired
-    private TransactionTemplate transactionTemplate;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -116,61 +98,6 @@ public class UserServiceImpl implements UserService {
         return Response.success(tokenInfo.tokenValue);
     }
 
-    /**
-     * 用户自动注册
-     * @param phone 用户手机号
-     * @return 返回注册用户的id
-     */
-    private Long registerUser(String phone) {
-        return transactionTemplate.execute(status -> {
-            try {
-                // 获取全局自增的小哈书 ID
-                Long xiaohashuId = redisTemplate.opsForValue().increment(RedisKeyConstants.XHS_ID_GENERATE_KEY);
-
-                UserDO userDO = UserDO.builder()
-                        .phone(phone)
-                        .xhsId(String.valueOf(xiaohashuId)) // 自动生成小红书号 ID
-                        .nickname("小红薯" + xiaohashuId) // 自动生成昵称, 如：小红薯10000
-                        .status(StatusEnum.ENABLE.getValue()) // 状态为启用
-                        .createTime(LocalDateTime.now())
-                        .updateTime(LocalDateTime.now())
-                        .deleted(DeletedEnum.NO.isDeleted()) // 逻辑删除
-                        .build();
-
-                // 添加入库
-                userDOMapper.insert(userDO);
-
-                // 获取刚刚添加入库的用户 ID
-                Long userId = userDO.getId();
-
-                // 给该用户分配一个默认角色
-                UserRoleDO userRoleDO = UserRoleDO.builder()
-                        .userId(userId)
-                        .roleId(RoleConstants.COMMON_USER_ROLE_ID)
-                        .createTime(LocalDateTime.now())
-                        .updateTime(LocalDateTime.now())
-                        .deleted(DeletedEnum.NO.isDeleted())
-                        .build();
-                userRoleDOMapper.insert(userRoleDO);
-
-                RoleDO roleDO = roleDOMapper.selectById(RoleConstants.COMMON_USER_ROLE_ID);
-
-                // 将该用户的角色 ID 存入 Redis 中
-                List<String> roles = new ArrayList<>(1);
-                roles.add(roleDO.getRoleKey());
-
-                String userRolesKey = RedisKeyConstants.buildUserRoleKey(userId);
-                redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
-
-                return userId;
-            } catch (Exception e) {
-                status.setRollbackOnly(); // 标记事务为回滚
-                log.error("==> 系统注册用户异常: ", e);
-                return null;
-            }
-        });
-    }
-
     @Override
     public Response<?> logout(Long userId) {
         StpUtil.logout(userId);
@@ -182,15 +109,9 @@ public class UserServiceImpl implements UserService {
         Long userId = LoginUserContextFilter.getLoginUserId();
         String newPassword = updatePasswordReqVO.getPassword();
         String encodedPassword = passwordEncoder.encode(newPassword);
-
-        UserDO user = UserDO.builder()
-                .id(userId)
-                .password(encodedPassword)
-                .updateTime(LocalDateTime.now())
-                .build();
-
-        userDOMapper.update(user);
+        userRpcService.updateUserPassword(encodedPassword);
         return Response.success();
     }
+
 }
 

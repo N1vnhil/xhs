@@ -1,7 +1,9 @@
 package org.n1vnhil.xhs.user.biz.service.impl;
 
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.User;
 import org.apache.commons.lang3.StringUtils;
 import org.n1vnhil.framework.common.enums.DeletedEnum;
 import org.n1vnhil.framework.common.enums.StatusEnum;
@@ -25,8 +27,10 @@ import org.n1vnhil.xhs.user.biz.rpc.OssRpcService;
 import org.n1vnhil.xhs.user.biz.service.UserService;
 import org.n1vnhil.xhs.user.dto.req.FindUserByPhoneReqDTO;
 import org.n1vnhil.xhs.user.dto.req.RegisterUserReqDTO;
+import org.n1vnhil.xhs.user.dto.req.UpdateUserPasswordReqDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -204,5 +208,18 @@ public class UserServiceImpl implements UserService {
                 .password(user.getPassword())
                 .build();
         return Response.success(response);
+    }
+
+    @Override
+    public Response<?> editPassword(UpdateUserPasswordReqDTO updateUserPasswordReqDTO) {
+        String password = updateUserPasswordReqDTO.getEncodedPassword();
+        Long userId = LoginUserContextHolder.getLoginUserId();
+        UserDO userDO = UserDO.builder()
+                .id(userId)
+                .password(password)
+                .updateTime(LocalDateTime.now())
+                .build();
+        userMapper.update(userDO);
+        return Response.success();
     }
 }
