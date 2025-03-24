@@ -2,13 +2,18 @@ package org.n1vnhil.xhs.kv.biz.service.impl;
 
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.xhs.kv.biz.domain.dataobject.NoteContentDO;
 import org.n1vnhil.xhs.kv.biz.domain.repository.NoteContentRepository;
+import org.n1vnhil.xhs.kv.biz.enums.ResponseCodeEnum;
 import org.n1vnhil.xhs.kv.biz.service.NoteContentService;
 import org.n1vnhil.xhs.kv.dto.req.AddNoteContentReqDTO;
+import org.n1vnhil.xhs.kv.dto.req.FindNoteContentReqDTO;
+import org.n1vnhil.xhs.kv.dto.rsp.FindNoteContentRspDTO;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -32,5 +37,21 @@ public class NoteContentServiceImpl implements NoteContentService {
         noteContentRepository.save(noteContentDO);
 
         return Response.success();
+    }
+
+    @Override
+    public Response<FindNoteContentRspDTO> findNoteContent(FindNoteContentReqDTO findNoteContentReqDTO) {
+        log.info("==========> 查询笔记：{}", findNoteContentReqDTO);
+        String noteId = findNoteContentReqDTO.getNoteId();
+        Optional<NoteContentDO> optional = noteContentRepository.findById(UUID.fromString(noteId));
+        if(!optional.isPresent()) throw new BizException(ResponseCodeEnum.NOTE_CONTENT_NOT_FOUND);
+
+        NoteContentDO noteContentDO = optional.get();
+        FindNoteContentRspDTO findNoteContentRspDTO = FindNoteContentRspDTO.builder()
+                .content(noteContentDO.getContent())
+                .noteId(noteContentDO.getId())
+                .build();
+
+        return Response.success(findNoteContentRspDTO);
     }
 }
