@@ -23,6 +23,7 @@ import org.n1vnhil.xhs.user.biz.domain.mapper.UserRoleDOMapper;
 import org.n1vnhil.xhs.user.biz.enums.GenderEnum;
 import org.n1vnhil.xhs.user.biz.enums.ResponseCodeEnum;
 import org.n1vnhil.xhs.user.biz.model.vo.UpdateUserReqVO;
+import org.n1vnhil.xhs.user.biz.rpc.DistributedIdGeneratorRpcService;
 import org.n1vnhil.xhs.user.biz.rpc.OssRpcService;
 import org.n1vnhil.xhs.user.biz.service.UserService;
 import org.n1vnhil.xhs.user.dto.req.FindUserByPhoneReqDTO;
@@ -59,6 +60,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private RoleDOMapper roleDOMapper;
+
+    @Resource
+    private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
 
     /**
      * 更新用户信息
@@ -148,12 +152,14 @@ public class UserServiceImpl implements UserService {
         log.info("==========> 用户注册，手机号：{}", phone);
         if(Objects.nonNull(user)) return Response.success(user.getId());
 
-
-        Long xhsId = redisTemplate.opsForValue().increment(RedisKeyConstants.XHS_ID_GENERATE_KEY);
+        String xhsId = distributedIdGeneratorRpcService.getXhsId();
+        String userIdStr = distributedIdGeneratorRpcService.getUserId();
+        Long userId = Long.valueOf(userIdStr);
 
         UserDO userDO = UserDO.builder()
+                .id(userId)
                 .phone(phone)
-                .xhsId(String.valueOf(xhsId)) // 自动生成小红书号 ID
+                .xhsId(xhsId) // 自动生成小红书号 ID
                 .nickname("小红薯" + xhsId) // 自动生成昵称, 如：小红薯10000
                 .status(StatusEnum.ENABLE.getValue()) // 状态为启用
                 .createTime(LocalDateTime.now())
@@ -163,9 +169,6 @@ public class UserServiceImpl implements UserService {
 
         // 添加入库
         userMapper.insert(userDO);
-
-        // 获取刚刚添加入库的用户 ID
-        Long userId = userDO.getId();
 
         // 给该用户分配一个默认角色
         UserRoleDO userRoleDO = UserRoleDO.builder()
