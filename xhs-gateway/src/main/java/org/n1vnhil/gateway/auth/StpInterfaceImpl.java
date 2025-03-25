@@ -1,24 +1,20 @@
-package org.n1vnhil.auth;
+package org.n1vnhil.gateway.auth;
 
 import cn.dev33.satoken.stp.StpInterface;
 import cn.hutool.core.collection.CollUtil;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.n1vnhil.constant.RedisKeyConstants;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.n1vnhil.gateway.constant.RedisKeyConstants;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.apache.commons.lang3.StringUtils;
 
 
-
-import java.io.IOException;
 import java.util.List;
 
 @Component

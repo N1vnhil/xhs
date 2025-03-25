@@ -1,4 +1,4 @@
-package org.n1vnhil.auth;
+package org.n1vnhil.gateway.auth;
 
 import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.NotPermissionException;

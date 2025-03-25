@@ -1,4 +1,4 @@
-package org.n1vnhil.constant;
+package org.n1vnhil.gateway.constant;
 
 public class RedisKeyConstants {
 

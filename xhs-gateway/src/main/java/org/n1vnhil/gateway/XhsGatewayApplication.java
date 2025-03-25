@@ -1,4 +1,4 @@
-package org.n1vnhil;
+package org.n1vnhil.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

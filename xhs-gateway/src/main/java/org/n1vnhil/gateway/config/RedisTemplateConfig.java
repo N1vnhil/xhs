@@ -1,4 +1,4 @@
-package org.n1vnhil.config;
+package org.n1vnhil.gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

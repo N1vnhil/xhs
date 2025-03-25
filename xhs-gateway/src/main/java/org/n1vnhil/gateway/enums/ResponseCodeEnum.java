@@ -1,4 +1,4 @@
-package org.n1vnhil.enums;
+package org.n1vnhil.gateway.enums;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

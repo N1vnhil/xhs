@@ -1,14 +1,12 @@
-package org.n1vnhil.exception;
+package org.n1vnhil.gateway.exception;
 
 import cn.dev33.satoken.exception.NotPermissionException;
-import cn.dev33.satoken.exception.SaTokenContextException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.n1vnhil.enums.ResponseCodeEnum;
+import org.n1vnhil.gateway.enums.ResponseCodeEnum;
 import org.n1vnhil.framework.common.response.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;

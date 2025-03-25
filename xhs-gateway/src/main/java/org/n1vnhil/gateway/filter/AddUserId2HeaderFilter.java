@@ -1,4 +1,4 @@
-package org.n1vnhil.filter;
+package org.n1vnhil.gateway.filter;
 
 
 import cn.dev33.satoken.stp.StpUtil;
