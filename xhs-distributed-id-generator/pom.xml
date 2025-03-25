@@ -1,0 +1,33 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.n1vnhil</groupId>
+        <artifactId>xhs</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>xhs-distributed-id-generator</artifactId>
+    <packaging>pom</packaging>
+
+    <name>xhs-distributed-id-generator</name>
+    <url>http://maven.apache.org</url>
+    <modules>
+        <module>xhs-distributed-id-generator-api</module>
+        <module>xhs-distributed-id-generator-biz</module>
+    </modules>
+    <description>分布式id生成</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>3.8.1</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

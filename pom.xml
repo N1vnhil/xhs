@@ -27,6 +27,7 @@
         <module>xhs-user</module>
         <module>xhs-user/xhs-user-biz</module>
         <module>xhs-kv</module>
+        <module>xhs-distributed-id-generator</module>
     </modules>
 
     <properties>
