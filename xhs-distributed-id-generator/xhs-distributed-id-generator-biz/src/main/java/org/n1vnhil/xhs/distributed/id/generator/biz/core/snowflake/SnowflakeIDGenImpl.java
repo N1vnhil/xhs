@@ -1,7 +1,6 @@
 package org.n1vnhil.xhs.distributed.id.generator.biz.core.snowflake;
 
 import com.google.common.base.Preconditions;
-
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.IDGen;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.Result;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.Status;

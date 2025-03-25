@@ -1,6 +1,7 @@
 package org.n1vnhil.xhs.distributed.id.generator.biz.controller;
 
 
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.Result;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.Status;
@@ -8,8 +9,6 @@ import org.n1vnhil.xhs.distributed.id.generator.biz.exception.LeafServerExceptio
 import org.n1vnhil.xhs.distributed.id.generator.biz.exception.NoKeyException;
 import org.n1vnhil.xhs.distributed.id.generator.biz.service.SegmentService;
 import org.n1vnhil.xhs.distributed.id.generator.biz.service.SnowflakeService;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,17 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class LeafController {
 
-    @Autowired
+    @Resource
     private SegmentService segmentService;
-    @Autowired
+    @Resource
     private SnowflakeService snowflakeService;
 
-    @RequestMapping(value = "/api/segment/get/{key}")
+    @RequestMapping(value = "/segment/get/{key}")
     public String getSegmentId(@PathVariable("key") String key) {
         return get(key, segmentService.getId(key));
     }
 
-    @RequestMapping(value = "/api/snowflake/get/{key}")
+    @RequestMapping(value = "/snowflake/get/{key}")
     public String getSnowflakeId(@PathVariable("key") String key) {
         return get(key, snowflakeService.getId(key));
     }

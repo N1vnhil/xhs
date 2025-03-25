@@ -1,7 +1,7 @@
 package org.n1vnhil.xhs.distributed.id.generator.biz.core.common;
 
-import org.n1vnhil.xhs.distributed.id.generator.biz.core.IDGen;
 
+import org.n1vnhil.xhs.distributed.id.generator.biz.core.IDGen;
 
 public class ZeroIDGen implements IDGen {
     @Override

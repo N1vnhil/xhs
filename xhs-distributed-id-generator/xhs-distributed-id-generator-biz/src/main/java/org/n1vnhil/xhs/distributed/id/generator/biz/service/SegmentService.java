@@ -1,6 +1,7 @@
 package org.n1vnhil.xhs.distributed.id.generator.biz.service;
 
 import com.alibaba.druid.pool.DruidDataSource;
+
 import org.n1vnhil.xhs.distributed.id.generator.biz.constant.Constants;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.IDGen;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.PropertyFactory;
@@ -30,9 +31,11 @@ public class SegmentService {
         if (flag) {
             // Config dataSource
             dataSource = new DruidDataSource();
+            dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
             dataSource.setUrl(properties.getProperty(Constants.LEAF_JDBC_URL));
             dataSource.setUsername(properties.getProperty(Constants.LEAF_JDBC_USERNAME));
             dataSource.setPassword(properties.getProperty(Constants.LEAF_JDBC_PASSWORD));
+            dataSource.setValidationQuery("select 1");
             dataSource.init();
 
             // Config Dao

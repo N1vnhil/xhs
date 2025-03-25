@@ -1,5 +1,6 @@
 package org.n1vnhil.xhs.distributed.id.generator.biz.core.segment;
 
+
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.IDGen;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.Result;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.Status;

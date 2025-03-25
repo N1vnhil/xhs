@@ -1,8 +1,8 @@
 package org.n1vnhil.xhs.distributed.id.generator.biz.service;
 
+
 import org.n1vnhil.xhs.distributed.id.generator.biz.constant.Constants;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.IDGen;
-
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.PropertyFactory;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.Result;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.common.ZeroIDGen;

@@ -1,6 +1,5 @@
 package org.n1vnhil.xhs.distributed.id.generator.biz.core.segment.dao;
 
-
 import org.apache.ibatis.annotations.*;
 import org.n1vnhil.xhs.distributed.id.generator.biz.core.segment.model.LeafAlloc;
 
