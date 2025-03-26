@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 
 public class JsonUtils {
 
@@ -33,6 +34,17 @@ public class JsonUtils {
      */
     public static void init(ObjectMapper objectMapper) {
         OBJECT_MAPPER = objectMapper;
+    }
+
+    /**
+     * 将 Json 字符串转换为对象
+     * @return
+     * @param <T>
+     */
+    @SneakyThrows
+    public static <T> T parseObject(String jsonStr, Class<T> clazz) {
+        if(StringUtils.isBlank(jsonStr)) return null;
+        return OBJECT_MAPPER.readValue(jsonStr, clazz);
     }
 
 }

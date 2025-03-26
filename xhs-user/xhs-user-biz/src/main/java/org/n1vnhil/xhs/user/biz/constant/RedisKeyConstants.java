@@ -33,4 +33,13 @@ public class RedisKeyConstants {
         return ROLE_PERMISSIONS_KEY_PREFIX + roleKey;
     }
 
+    /**
+     * 用户信息redis key前缀
+     */
+    private static final String USER_INFO_KEY_PREFIX = "user:info:";
+
+    public static String buildUserInfoKey(Long userId) {
+        return USER_INFO_KEY_PREFIX + userId;
+    }
+
 }
