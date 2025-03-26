@@ -1,13 +1,21 @@
 package org.n1vnhil.xhs.note.biz.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.mysql.cj.x.protobuf.MysqlxCrud;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.units.qual.A;
 import org.n1vnhil.framework.common.enums.StatusEnum;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
+import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
+import org.n1vnhil.xhs.note.biz.constant.RedisKeyConstants;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.TopicDO;
 import org.n1vnhil.xhs.note.biz.domain.mapper.NoteDOMapper;
@@ -25,6 +33,8 @@ import org.n1vnhil.xhs.note.biz.rpc.UserRpcService;
 import org.n1vnhil.xhs.note.biz.service.NoteService;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 
@@ -32,10 +42,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 public class NoteServiceImpl implements NoteService {
+
+    @Resource
+    private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
     @Autowired
     private UserRpcService userRpcService;
@@ -51,6 +65,15 @@ public class NoteServiceImpl implements NoteService {
 
     @Autowired
     private NoteDOMapper noteDOMapper;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    private static final Cache<Long, String> LOCAL_CACHE = Caffeine.newBuilder()
+            .initialCapacity(10000) // 设置初始容量为 10000 个条目
+            .maximumSize(10000) // 设置缓存的最大容量为 10000 个条目
+            .expireAfterWrite(1, TimeUnit.HOURS) // 设置缓存条目在写入后 1 小时过期
+            .build();
 
     @Override
     public Response<?> publishNote(PublishNoteReqVO publishNoteReqVO) {
@@ -134,9 +157,36 @@ public class NoteServiceImpl implements NoteService {
     public Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO) {
         Long noteId = findNoteDetailReqVO.getId();
         Long userId = LoginUserContextHolder.getLoginUserId();
+        String key = RedisKeyConstants.buildNoteDetailKey(noteId);
+
+        // 查询本地缓存
+        String noteDOStr = LOCAL_CACHE.getIfPresent(noteId);
+        if(StringUtils.isNotBlank(noteDOStr)) {
+            FindNoteDetailRspVO findNoteDetailRspVO = JsonUtils.parseObject(noteDOStr, FindNoteDetailRspVO.class);
+            checkNoteVisibleVO(userId, findNoteDetailRspVO);
+            return Response.success(findNoteDetailRspVO);
+        }
+
+        // 查询 redis
+        noteDOStr = (String) redisTemplate.opsForValue().get(key);
+        if(StringUtils.isNotBlank(noteDOStr)) {
+            FindNoteDetailRspVO findNoteDetailRspVO = JsonUtils.parseObject(noteDOStr, FindNoteDetailRspVO.class);
+            threadPoolTaskExecutor.execute(() -> {
+                LOCAL_CACHE.put(noteId, Objects.isNull(findNoteDetailRspVO)
+                        ? "null" : JsonUtils.toJsonString(findNoteDetailRspVO));
+            });
+            checkNoteVisibleVO(userId, findNoteDetailRspVO);
+            return Response.success(findNoteDetailRspVO);
+        }
+
+        // 查询数据库
         NoteDO noteDO = noteDOMapper.selectNoteById(noteId);
 
         if(Objects.isNull(noteDO)) {
+            threadPoolTaskExecutor.execute(() -> {
+                long expireTime = 60 + RandomUtil.randomInt(60);
+                redisTemplate.opsForValue().set(key, "null", expireTime, TimeUnit.SECONDS);
+            });
             throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
         }
 
@@ -172,6 +222,12 @@ public class NoteServiceImpl implements NoteService {
                 .visible(noteDO.getVisible())
                 .build();
 
+        threadPoolTaskExecutor.execute(() -> {
+            String json = JsonUtils.toJsonString(findNoteDetailRspVO);
+            long expireTime = 60*60*24 + RandomUtil.randomInt(60*60*24);
+            redisTemplate.opsForValue().set(key, json, expireTime, TimeUnit.SECONDS);
+        });
+
         return Response.success(findNoteDetailRspVO);
     }
 
@@ -179,6 +235,13 @@ public class NoteServiceImpl implements NoteService {
         if(Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
                 && !Objects.equals(userId, creatorId)) {
             throw new BizException(ResponseCodeEnum.NOTE_PRIVATE);
+        }
+    }
+
+    private void checkNoteVisibleVO(Long userId, FindNoteDetailRspVO findNoteDetailRspVO) {
+        if(Objects.nonNull(findNoteDetailRspVO)) {
+            Integer visible = findNoteDetailRspVO.getVisible();
+            checkNoteVisible(visible, userId, findNoteDetailRspVO.getCreatorId());
         }
     }
 }
