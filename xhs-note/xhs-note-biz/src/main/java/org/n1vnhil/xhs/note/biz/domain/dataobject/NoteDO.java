@@ -39,4 +39,6 @@ public class NoteDO {
 
     private LocalDateTime updateTime;
 
+    private String contentUuid;
+
 }

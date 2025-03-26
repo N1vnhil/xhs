@@ -94,5 +94,15 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.n1vnhil</groupId>
+            <artifactId>xhs-distributed-id-generator-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.n1vnhil</groupId>
+            <artifactId>xhs-kv-api</artifactId>
+        </dependency>
+
     </dependencies>
 </project>
