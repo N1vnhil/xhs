@@ -27,7 +27,7 @@ public class NoteContentServiceImpl implements NoteContentService {
     @Override
     public Response<?> addNoteContent(AddNoteContentReqDTO addNoteContentReqDTO) {
         log.info("==========> 笔记写入Cassandra：{}", addNoteContentReqDTO);
-        Long noteId = addNoteContentReqDTO.getNoteId();
+        String noteId = addNoteContentReqDTO.getUuid();
         String content = addNoteContentReqDTO.getContent();
 
         NoteContentDO noteContentDO = NoteContentDO.builder()
@@ -43,7 +43,7 @@ public class NoteContentServiceImpl implements NoteContentService {
     @Override
     public Response<FindNoteContentRspDTO> findNoteContent(FindNoteContentReqDTO findNoteContentReqDTO) {
         log.info("==========> 查询笔记：{}", findNoteContentReqDTO);
-        String noteId = findNoteContentReqDTO.getNoteId();
+        String noteId = findNoteContentReqDTO.getUuid();
         Optional<NoteContentDO> optional = noteContentRepository.findById(UUID.fromString(noteId));
         if(!optional.isPresent()) throw new BizException(ResponseCodeEnum.NOTE_CONTENT_NOT_FOUND);
 
@@ -59,7 +59,7 @@ public class NoteContentServiceImpl implements NoteContentService {
     @Override
     public Response<?> deleteNoteContent(DeleteNoteContentDTO deleteNoteContentDTO) {
         log.info("==========> 删除笔记：{}", deleteNoteContentDTO);
-        UUID uuid = UUID.fromString(deleteNoteContentDTO.getNoteId());
+        UUID uuid = UUID.fromString(deleteNoteContentDTO.getUuid());
         noteContentRepository.deleteById(uuid);
         return Response.success();
     }
