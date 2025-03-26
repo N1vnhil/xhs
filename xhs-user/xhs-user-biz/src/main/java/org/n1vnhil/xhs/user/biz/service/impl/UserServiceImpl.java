@@ -3,7 +3,6 @@ package org.n1vnhil.xhs.user.biz.service.impl;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.User;
 import org.apache.commons.lang3.StringUtils;
 import org.n1vnhil.framework.common.enums.DeletedEnum;
 import org.n1vnhil.framework.common.enums.StatusEnum;
@@ -26,9 +25,11 @@ import org.n1vnhil.xhs.user.biz.model.vo.UpdateUserReqVO;
 import org.n1vnhil.xhs.user.biz.rpc.DistributedIdGeneratorRpcService;
 import org.n1vnhil.xhs.user.biz.rpc.OssRpcService;
 import org.n1vnhil.xhs.user.biz.service.UserService;
+import org.n1vnhil.xhs.user.dto.req.FindUserByIdReqDTO;
 import org.n1vnhil.xhs.user.dto.req.FindUserByPhoneReqDTO;
 import org.n1vnhil.xhs.user.dto.req.RegisterUserReqDTO;
 import org.n1vnhil.xhs.user.dto.req.UpdateUserPasswordReqDTO;
+import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.core.Local;
@@ -224,5 +225,22 @@ public class UserServiceImpl implements UserService {
                 .build();
         userMapper.update(userDO);
         return Response.success();
+    }
+
+    @Override
+    public Response<FindUserByIdRspDTO> findUserById(FindUserByIdReqDTO findUserByIdReqDTO) {
+        Long userId = findUserByIdReqDTO.getId();
+        UserDO userDO = userMapper.selectById(userId);
+
+        if(Objects.isNull(userDO)) {
+            throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
+        }
+
+        FindUserByIdRspDTO findUserByIdRspDTO = FindUserByIdRspDTO.builder()
+                .id(userId)
+                .nickname(userDO.getNickname())
+                .avatar(userDO.getAvatar())
+                .build();
+        return Response.success(findUserByIdRspDTO);
     }
 }

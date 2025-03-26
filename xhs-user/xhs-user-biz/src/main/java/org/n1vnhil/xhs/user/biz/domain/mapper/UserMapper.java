@@ -13,4 +13,7 @@ public interface UserMapper {
 
     @Select("select * from t_user where phone=#{phone}")
     UserDO selectByPhone(String phone);
+
+    @Select("select * from t_user where id=#{id}")
+    UserDO selectById(Long id);
 }
