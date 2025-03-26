@@ -14,4 +14,6 @@ public interface NoteDOMapper {
     void insert(NoteDO noteDO);
 
     NoteDO selectNoteById(Long id);
+
+    void update(NoteDO noteDO);
 }

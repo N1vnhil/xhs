@@ -3,6 +3,20 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.n1vnhil.xhs.note.biz.domain.mapper.NoteDOMapper">
+    <update id="update" parameterType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO">
+        update t_note
+        <set>
+            <if test="contentEmpty != null">content_empty=#{contentEmpty},</if>
+            <if test="type != null">type=#{type},</if>
+            <if test="title != null">title=#{title},</if>
+            <if test="topicId != null">topic_id=#{topicId},</if>
+            <if test="topicName != null">topic_name=#{topicName},</if>
+            <if test="imgUris != null">img_uris=#{imgUris},</if>
+            <if test="videoUri!=null">video_uri=#{videoUri},</if>
+            <if test="updateTime!=null">update_time=#{updateTime}</if>
+        </set>
+        where id=#{id}
+    </update>
 
     <select id="selectNoteById" resultType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO">
         select * from t_note where id=#{id};

@@ -27,6 +27,7 @@ import org.n1vnhil.xhs.note.biz.enums.ResponseCodeEnum;
 import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailReqVO;
 import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailRspVO;
 import org.n1vnhil.xhs.note.biz.model.vo.PublishNoteReqVO;
+import org.n1vnhil.xhs.note.biz.model.vo.UpdateNoteReqVO;
 import org.n1vnhil.xhs.note.biz.rpc.DistributedIdGeneratorRpcService;
 import org.n1vnhil.xhs.note.biz.rpc.KvRpcService;
 import org.n1vnhil.xhs.note.biz.rpc.UserRpcService;
@@ -36,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 import java.time.LocalDateTime;
@@ -229,6 +231,76 @@ public class NoteServiceImpl implements NoteService {
         });
 
         return Response.success(findNoteDetailRspVO);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Response<?> updateNote(UpdateNoteReqVO updateNoteReqVO) {
+        Long noteId = updateNoteReqVO.getId();
+        NoteTypeEnum noteTypeEnum = NoteTypeEnum.valueOf(updateNoteReqVO.getType());
+        if(Objects.isNull(noteTypeEnum)) {
+            throw new BizException(ResponseCodeEnum.NOTE_TYPE_ERROR);
+        }
+
+        String imgUris = null;
+        String videoUri = null;
+        switch (noteTypeEnum) {
+            case IMAGE_TEXT -> {
+                List<String> uris = updateNoteReqVO.getImgUris();
+                if(Objects.nonNull(uris)) {
+                    Preconditions.checkArgument(uris.size() <= 8, "笔记图片不能超过8张");
+                    imgUris = StringUtils.join(uris, ",");
+                }
+            }
+
+            case VIDEO -> {
+                videoUri = updateNoteReqVO.getVideoUri();
+            }
+        }
+
+        Long topicId = updateNoteReqVO.getTopicId();
+        String topicName = null;
+        if(Objects.nonNull(topicId)) {
+            TopicDO topicDO = topicDOMapper.selectTopicById(topicId);
+            if(Objects.isNull(topicDO)) throw new BizException(ResponseCodeEnum.NOTE_TOPIC_NOT_FOUND);
+            topicName = topicDO.getName();
+        }
+
+        String content = updateNoteReqVO.getContent();
+        NoteDO noteDO = NoteDO.builder()
+                .id(noteId)
+                .contentEmpty(StringUtils.isBlank(content))
+                .type(updateNoteReqVO.getType())
+                .title(updateNoteReqVO.getTitle())
+                .topicId(updateNoteReqVO.getTopicId())
+                .topicName(topicName)
+                .imgUris(imgUris)
+                .videoUri(videoUri)
+                .updateTime(LocalDateTime.now())
+                .build();
+        noteDOMapper.update(noteDO);
+
+        String key = RedisKeyConstants.buildNoteDetailKey(noteId);
+        redisTemplate.delete(key);
+        LOCAL_CACHE.invalidate(noteId);
+
+        NoteDO noteDO1 = noteDOMapper.selectNoteById(noteId);
+        String contentUuid = noteDO1.getContentUuid();
+
+        // 笔记内容是否更新成功
+        boolean isUpdateContentSuccess = false;
+        if (StringUtils.isBlank(content)) {
+            isUpdateContentSuccess = kvRpcService.deleteNoteContent(contentUuid);
+        } else {
+            isUpdateContentSuccess = kvRpcService.saveNoteContent(contentUuid, content);
+        }
+
+        // 如果更新失败，抛出业务异常，回滚事务
+        if (!isUpdateContentSuccess) {
+            throw new BizException(ResponseCodeEnum.NOTE_UPDATE_FAIL);
+        }
+
+        return Response.success();
     }
 
     private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {

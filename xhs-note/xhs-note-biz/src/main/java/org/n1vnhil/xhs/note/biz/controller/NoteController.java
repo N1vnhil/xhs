@@ -6,6 +6,7 @@ import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailReqVO;
 import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailRspVO;
 import org.n1vnhil.xhs.note.biz.model.vo.PublishNoteReqVO;
+import org.n1vnhil.xhs.note.biz.model.vo.UpdateNoteReqVO;
 import org.n1vnhil.xhs.note.biz.service.NoteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -33,5 +34,12 @@ public class NoteController {
     public Response<FindNoteDetailRspVO> getNoteDetail(@Validated @RequestBody FindNoteDetailReqVO findNoteDetailReqVO) {
         return noteService.findNoteDetail(findNoteDetailReqVO);
     }
+
+    @ApiOperationLog(description = "更新笔记")
+    @PostMapping("/update")
+    public Response<?> updateNoteReqVOResponse(@Validated @RequestBody UpdateNoteReqVO updateNoteReqVO) {
+        return noteService.updateNote(updateNoteReqVO);
+    }
+
 
 }
