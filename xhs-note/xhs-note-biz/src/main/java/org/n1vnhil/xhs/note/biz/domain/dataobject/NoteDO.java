@@ -41,4 +41,5 @@ public class NoteDO {
 
     private String contentUuid;
 
+    private Integer status;
 }

@@ -27,12 +27,12 @@ public class NoteContentServiceImpl implements NoteContentService {
     @Override
     public Response<?> addNoteContent(AddNoteContentReqDTO addNoteContentReqDTO) {
         log.info("==========> 笔记写入Cassandra：{}", addNoteContentReqDTO);
-        String noteId = addNoteContentReqDTO.getUuid();
+        String uuid = addNoteContentReqDTO.getUuid();
         String content = addNoteContentReqDTO.getContent();
 
         NoteContentDO noteContentDO = NoteContentDO.builder()
                 .content(content)
-                .id(UUID.randomUUID())
+                .id(UUID.fromString(uuid))
                 .build();
 
         noteContentRepository.save(noteContentDO);
