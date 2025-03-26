@@ -1,5 +1,6 @@
 package org.n1vnhil.xhs.user.biz.service.impl;
 
+import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -32,16 +33,19 @@ import org.n1vnhil.xhs.user.dto.req.UpdateUserPasswordReqDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -64,6 +68,9 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
+
+    @Resource
+    private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
     /**
      * 更新用户信息
@@ -230,9 +237,26 @@ public class UserServiceImpl implements UserService {
     @Override
     public Response<FindUserByIdRspDTO> findUserById(FindUserByIdReqDTO findUserByIdReqDTO) {
         Long userId = findUserByIdReqDTO.getId();
+
+
+        // 查询 redis
+        String key = RedisKeyConstants.buildUserInfoKey(userId);
+        String userInfoJson = (String) redisTemplate.opsForValue().get(key);
+        if(StringUtils.isNotBlank(userInfoJson)) {
+            FindUserByIdRspDTO findUserByIdRspDTO = JsonUtils.parseObject(userInfoJson, FindUserByIdRspDTO.class);
+            if(Objects.isNull(findUserByIdRspDTO)) throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
+            return Response.success(findUserByIdRspDTO);
+        }
+
+        // redis 缓存未命中
         UserDO userDO = userMapper.selectById(userId);
 
         if(Objects.isNull(userDO)) {
+            threadPoolTaskExecutor.execute(() -> {
+                // 防止缓存穿透
+                long expireTime = 60 + RandomUtil.randomInt(60);
+                redisTemplate.opsForValue().set(key, "null", expireTime, TimeUnit.SECONDS);
+            });
             throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
         }
 
@@ -241,6 +265,15 @@ public class UserServiceImpl implements UserService {
                 .nickname(userDO.getNickname())
                 .avatar(userDO.getAvatar())
                 .build();
+
+        // 异步写入 redis
+        threadPoolTaskExecutor.execute(() -> {
+            // 打散缓存过期时间到 1-2 天的区间上
+            long expireTime = 60*60*24 + RandomUtil.randomInt(60*60*24);
+            String json = JsonUtils.toJsonString(findUserByIdRspDTO);
+            redisTemplate.opsForValue().set(key, json, expireTime, TimeUnit.SECONDS);
+        });
+
         return Response.success(findUserByIdRspDTO);
     }
 }
