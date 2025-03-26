@@ -2,6 +2,8 @@ package org.n1vnhil.xhs.user.biz.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -71,6 +73,12 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private ThreadPoolTaskExecutor threadPoolTaskExecutor;
+
+    private static final Cache<Long, FindUserByIdRspDTO> LOCAL_CACHE = Caffeine.newBuilder()
+            .initialCapacity(10000) // 初始容量
+            .maximumSize(10000) // 最大容量
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .build();
 
     /**
      * 更新用户信息
@@ -238,6 +246,11 @@ public class UserServiceImpl implements UserService {
     public Response<FindUserByIdRspDTO> findUserById(FindUserByIdReqDTO findUserByIdReqDTO) {
         Long userId = findUserByIdReqDTO.getId();
 
+        // 查询本地缓存
+        FindUserByIdRspDTO rsp = LOCAL_CACHE.getIfPresent(userId);
+        if(Objects.nonNull(rsp)) {
+            return Response.success(rsp);
+        }
 
         // 查询 redis
         String key = RedisKeyConstants.buildUserInfoKey(userId);
@@ -245,6 +258,11 @@ public class UserServiceImpl implements UserService {
         if(StringUtils.isNotBlank(userInfoJson)) {
             FindUserByIdRspDTO findUserByIdRspDTO = JsonUtils.parseObject(userInfoJson, FindUserByIdRspDTO.class);
             if(Objects.isNull(findUserByIdRspDTO)) throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
+
+            threadPoolTaskExecutor.execute(() -> {
+                LOCAL_CACHE.put(userId, findUserByIdRspDTO);
+            });
+
             return Response.success(findUserByIdRspDTO);
         }
 
