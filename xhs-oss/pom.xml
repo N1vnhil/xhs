@@ -4,11 +4,15 @@
     <parent>
         <groupId>org.n1vnhil</groupId>
         <artifactId>xhs</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
+    <modules>
+        <module>xhs-oss-biz</module>
+        <module>xhs-oss-api</module>
+    </modules>
 
     <artifactId>xhs-oss</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
     <name>xhs-oss</name>
     <url>http://maven.apache.org</url>
