@@ -5,6 +5,8 @@ import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.xhs.kv.api.KvFeignApi;
 import org.n1vnhil.xhs.kv.dto.req.AddNoteContentReqDTO;
 import org.n1vnhil.xhs.kv.dto.req.DeleteNoteContentDTO;
+import org.n1vnhil.xhs.kv.dto.req.FindNoteContentReqDTO;
+import org.n1vnhil.xhs.kv.dto.rsp.FindNoteContentRspDTO;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
@@ -42,6 +44,15 @@ public class KvRpcService {
                 .build();
         Response<?> response = kvFeignApi.deleteNoteContent(deleteNoteContentDTO);
         return Objects.nonNull(response) && response.isSuccess();
+    }
+
+    public String getNoteContent(String uuid) {
+        FindNoteContentReqDTO findNoteContentReqDTO = FindNoteContentReqDTO.builder()
+                .uuid(uuid)
+                .build();
+        Response<FindNoteContentRspDTO> response = kvFeignApi.findNoteContent(findNoteContentReqDTO);
+        if(Objects.isNull(response) || !response.isSuccess() || Objects.isNull(response.getData())) return null;
+        return response.getData().getContent();
     }
 
 }

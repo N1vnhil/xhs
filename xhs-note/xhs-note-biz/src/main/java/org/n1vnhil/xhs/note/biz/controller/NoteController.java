@@ -3,6 +3,8 @@ package org.n1vnhil.xhs.note.biz.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.n1vnhil.framework.biz.operationlog.aspect.ApiOperationLog;
 import org.n1vnhil.framework.common.response.Response;
+import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailReqVO;
+import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailRspVO;
 import org.n1vnhil.xhs.note.biz.model.vo.PublishNoteReqVO;
 import org.n1vnhil.xhs.note.biz.service.NoteService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,12 @@ public class NoteController {
     @PostMapping("/publish")
     public Response<?> publishNote(@Validated @RequestBody PublishNoteReqVO publishNoteReqVO) {
         return noteService.publishNote(publishNoteReqVO);
+    }
+
+    @ApiOperationLog(description = "获取笔记详情")
+    @PostMapping("/detail")
+    public Response<FindNoteDetailRspVO> getNoteDetail(@Validated @RequestBody FindNoteDetailReqVO findNoteDetailReqVO) {
+        return noteService.findNoteDetail(findNoteDetailReqVO);
     }
 
 }

@@ -118,5 +118,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.n1vnhil</groupId>
+            <artifactId>xhs-user-api</artifactId>
+        </dependency>
+
     </dependencies>
 </project>

@@ -16,10 +16,14 @@ import org.n1vnhil.xhs.note.biz.enums.NoteStatusEnum;
 import org.n1vnhil.xhs.note.biz.enums.NoteTypeEnum;
 import org.n1vnhil.xhs.note.biz.enums.NoteVisibleEnum;
 import org.n1vnhil.xhs.note.biz.enums.ResponseCodeEnum;
+import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailReqVO;
+import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailRspVO;
 import org.n1vnhil.xhs.note.biz.model.vo.PublishNoteReqVO;
 import org.n1vnhil.xhs.note.biz.rpc.DistributedIdGeneratorRpcService;
 import org.n1vnhil.xhs.note.biz.rpc.KvRpcService;
+import org.n1vnhil.xhs.note.biz.rpc.UserRpcService;
 import org.n1vnhil.xhs.note.biz.service.NoteService;
+import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +36,9 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class NoteServiceImpl implements NoteService {
+
+    @Autowired
+    private UserRpcService userRpcService;
 
     @Autowired
     private KvRpcService kvRpcService;
@@ -121,5 +128,57 @@ public class NoteServiceImpl implements NoteService {
         }
 
         return Response.success();
+    }
+
+    @Override
+    public Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO) {
+        Long noteId = findNoteDetailReqVO.getId();
+        Long userId = LoginUserContextHolder.getLoginUserId();
+        NoteDO noteDO = noteDOMapper.selectNoteById(noteId);
+
+        if(Objects.isNull(noteDO)) {
+            throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+        }
+
+        Long creatorId = noteDO.getCreatorId();
+        checkNoteVisible(noteDO.getVisible(), userId, creatorId);
+
+        String content = null;
+        if(Objects.equals(noteDO.getContentEmpty(), Boolean.FALSE)) {
+            content = kvRpcService.getNoteContent(noteDO.getContentUuid());
+        }
+
+        List<String> imgUris = null;
+        String imgUriStr = noteDO.getImgUris();
+        if(Objects.equals(noteDO.getType(), NoteTypeEnum.IMAGE_TEXT.getCode())
+                && StringUtils.isNotBlank(imgUriStr)) {
+            imgUris = List.of(imgUriStr.split(","));
+        }
+
+        FindUserByIdRspDTO creator = userRpcService.getUserById(creatorId);
+        FindNoteDetailRspVO findNoteDetailRspVO = FindNoteDetailRspVO.builder()
+                .id(noteId)
+                .type(noteDO.getType())
+                .title(noteDO.getTitle())
+                .content(content)
+                .imgUris(imgUris)
+                .topicId(noteDO.getTopicId())
+                .topicName(noteDO.getTopicName())
+                .creatorName(creator.getNickname())
+                .creatorId(creatorId)
+                .avatar(creator.getAvatar())
+                .videoUri(noteDO.getVideoUri())
+                .updateTime(noteDO.getUpdateTime())
+                .visible(noteDO.getVisible())
+                .build();
+
+        return Response.success(findNoteDetailRspVO);
+    }
+
+    private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {
+        if(Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
+                && !Objects.equals(userId, creatorId)) {
+            throw new BizException(ResponseCodeEnum.NOTE_PRIVATE);
+        }
     }
 }

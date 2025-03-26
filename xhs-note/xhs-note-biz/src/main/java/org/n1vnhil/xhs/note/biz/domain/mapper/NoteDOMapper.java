@@ -2,6 +2,7 @@ package org.n1vnhil.xhs.note.biz.domain.mapper;
 
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO;
 
 @Mapper
@@ -12,4 +13,5 @@ public interface NoteDOMapper {
             "#{updateTime}, #{status}, #{contentUuid})")
     void insert(NoteDO noteDO);
 
+    NoteDO selectNoteById(Long id);
 }
