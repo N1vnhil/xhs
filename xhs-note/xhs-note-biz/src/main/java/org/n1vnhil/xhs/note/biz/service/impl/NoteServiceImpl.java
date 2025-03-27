@@ -15,6 +15,7 @@ import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
+import org.n1vnhil.xhs.kv.dto.rsp.FindNoteContentRspDTO;
 import org.n1vnhil.xhs.note.biz.constant.RedisKeyConstants;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.TopicDO;
@@ -36,6 +37,7 @@ import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +46,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -161,6 +164,7 @@ public class NoteServiceImpl implements NoteService {
         Long userId = LoginUserContextHolder.getLoginUserId();
         String key = RedisKeyConstants.buildNoteDetailKey(noteId);
 
+
         // 查询本地缓存
         String noteDOStr = LOCAL_CACHE.getIfPresent(noteId);
         if(StringUtils.isNotBlank(noteDOStr)) {
@@ -192,38 +196,57 @@ public class NoteServiceImpl implements NoteService {
             throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
         }
 
-        Long creatorId = noteDO.getCreatorId();
-        checkNoteVisible(noteDO.getVisible(), userId, creatorId);
+        // 检查可见性
+        Integer visible = noteDO.getVisible();
+        checkNoteVisible(visible, userId, noteDO.getCreatorId());
 
-        String content = null;
+        // 下游服务并发执行优化
+        // 调用用户服务
+        CompletableFuture<FindUserByIdRspDTO> userResultFuture = CompletableFuture.supplyAsync(
+                () -> userRpcService.getUserById(userId), threadPoolTaskExecutor
+        );
+
+        // 调用kv存储服务
+        CompletableFuture<String> contentResultFuture = CompletableFuture.completedFuture(null);
         if(Objects.equals(noteDO.getContentEmpty(), Boolean.FALSE)) {
-            content = kvRpcService.getNoteContent(noteDO.getContentUuid());
+            contentResultFuture = CompletableFuture.supplyAsync(
+                () -> kvRpcService.getNoteContent(noteDO.getContentUuid()), threadPoolTaskExecutor
+            );
         }
 
-        List<String> imgUris = null;
-        String imgUriStr = noteDO.getImgUris();
-        if(Objects.equals(noteDO.getType(), NoteTypeEnum.IMAGE_TEXT.getCode())
-                && StringUtils.isNotBlank(imgUriStr)) {
-            imgUris = List.of(imgUriStr.split(","));
-        }
+        CompletableFuture<String> finalContentResult=  contentResultFuture;
+        CompletableFuture<FindNoteDetailRspVO> resultFuture = CompletableFuture
+                .allOf(contentResultFuture, userResultFuture)
+                .thenApply(s -> {
+                    FindUserByIdRspDTO user = userResultFuture.join();
+                    String content =  finalContentResult.join();
 
-        FindUserByIdRspDTO creator = userRpcService.getUserById(creatorId);
-        FindNoteDetailRspVO findNoteDetailRspVO = FindNoteDetailRspVO.builder()
-                .id(noteId)
-                .type(noteDO.getType())
-                .title(noteDO.getTitle())
-                .content(content)
-                .imgUris(imgUris)
-                .topicId(noteDO.getTopicId())
-                .topicName(noteDO.getTopicName())
-                .creatorName(creator.getNickname())
-                .creatorId(creatorId)
-                .avatar(creator.getAvatar())
-                .videoUri(noteDO.getVideoUri())
-                .updateTime(noteDO.getUpdateTime())
-                .visible(noteDO.getVisible())
-                .build();
+                    List<String> imgUris = null;
+                    String imgUriStr = noteDO.getImgUris();
+                    if(Objects.equals(noteDO.getType(), NoteTypeEnum.IMAGE_TEXT.getCode())
+                            && StringUtils.isNotBlank(imgUriStr)) {
+                        imgUris = List.of(imgUriStr.split(","));
+                    }
 
+                    return FindNoteDetailRspVO.builder()
+                            .id(noteId)
+                            .type(noteDO.getType())
+                            .title(noteDO.getTitle())
+                            .content(content)
+                            .imgUris(imgUris)
+                            .topicId(noteDO.getTopicId())
+                            .topicName(noteDO.getTopicName())
+                            .creatorName(user.getNickname())
+                            .creatorId(user.getId())
+                            .avatar(user.getAvatar())
+                            .videoUri(noteDO.getVideoUri())
+                            .updateTime(noteDO.getUpdateTime())
+                            .visible(noteDO.getVisible())
+                            .build();
+                });
+
+
+        FindNoteDetailRspVO findNoteDetailRspVO = resultFuture.join();
         threadPoolTaskExecutor.execute(() -> {
             String json = JsonUtils.toJsonString(findNoteDetailRspVO);
             long expireTime = 60*60*24 + RandomUtil.randomInt(60*60*24);
