@@ -19,7 +19,7 @@
     </update>
 
     <select id="selectNoteById" resultType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO">
-        select * from t_note where id=#{id};
+        select * from t_note where id=#{id} and status=1;
     </select>
 
     <update id="updateTop" parameterType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO">
