@@ -26,6 +26,7 @@
         <module>xhs-kv</module>
         <module>xhs-distributed-id-generator</module>
         <module>xhs-note</module>
+        <module>xhs-user-relation</module>
     </modules>
 
     <properties>
