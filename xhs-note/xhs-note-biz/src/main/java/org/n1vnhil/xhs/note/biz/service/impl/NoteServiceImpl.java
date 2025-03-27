@@ -9,9 +9,12 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.n1vnhil.framework.common.enums.DeletedEnum;
+import org.n1vnhil.framework.common.enums.StatusEnum;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.framework.common.util.JsonUtils;
+import org.n1vnhil.framework.context.filter.HeadUserId2ContextFilter;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
 import org.n1vnhil.xhs.note.biz.constant.MQConstants;
 import org.n1vnhil.xhs.note.biz.constant.RedisKeyConstants;
@@ -75,6 +78,10 @@ public class NoteServiceImpl implements NoteService {
             .maximumSize(10000) // 设置缓存的最大容量为 10000 个条目
             .expireAfterWrite(1, TimeUnit.HOURS) // 设置缓存条目在写入后 1 小时过期
             .build();
+    @Autowired
+    private NoteService noteService;
+    @Autowired
+    private HeadUserId2ContextFilter headUserId2ContextFilter;
 
     @Override
     public Response<?> publishNote(PublishNoteReqVO publishNoteReqVO) {
@@ -333,7 +340,27 @@ public class NoteServiceImpl implements NoteService {
 
     @Override
     public Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO) {
-        return null;
+        Long noteId = deleteNoteReqVO.getId();
+        NoteDO noteDO = NoteDO.builder()
+                .id(noteId)
+                .status(NoteStatusEnum.DELETED.getCode())
+                .updateTime(LocalDateTime.now())
+                .build();
+
+        // 数据库逻辑删除
+        int cnt = noteDOMapper.update(noteDO);
+        if(cnt == 0) {
+            throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+        }
+
+        // 删除redis缓存
+        String key = RedisKeyConstants.buildNoteDetailKey(noteId);
+        redisTemplate.delete(key);
+
+        // MQ广播删除本地缓存
+        rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
+        log.info("==========> MQ: 广播删除缓存，noteId: {}", noteId);
+        return Response.success();
     }
 
     private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {
