@@ -363,6 +363,28 @@ public class NoteServiceImpl implements NoteService {
         return Response.success();
     }
 
+    @Override
+    public Response<?> setOnlyMe(OnlyMeVisibleReqVO onlyMeVisibleReqVO) {
+        Long noteId = onlyMeVisibleReqVO.getId();
+        NoteDO noteDO = NoteDO.builder()
+                .id(noteId)
+                .visible(NoteVisibleEnum.PRIVATE.getCode())
+                .updateTime(LocalDateTime.now())
+                .build();
+        int cnt = noteDOMapper.update(noteDO);
+
+        if(cnt == 0) throw new BizException(ResponseCodeEnum.NOTE_CANNOT_ONLY_ME);
+
+        // 删除redis缓存
+        String key = RedisKeyConstants.buildNoteDetailKey(noteId);
+        redisTemplate.delete(key);
+
+        // MQ广播删除本地缓存
+        rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
+        log.info("==========> MQ: 广播删除缓存，noteId: {}", noteId);
+        return Response.success();
+    }
+
     private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {
         if(Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
                 && !Objects.equals(userId, creatorId)) {

@@ -38,4 +38,11 @@ public interface NoteService {
      * @return
      */
     Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO);
+
+    /**
+     * 笔记设置为仅自己可见
+     * @param onlyMeVisibleReqVO
+     * @return
+     */
+    Response<?> setOnlyMe(OnlyMeVisibleReqVO onlyMeVisibleReqVO);
 }

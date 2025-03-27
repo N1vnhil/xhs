@@ -44,5 +44,10 @@ public class NoteController {
         return noteService.deleteNote(deleteNoteReqVO);
     }
 
+    @ApiOperationLog(description = "设置仅自己可见")
+    @PostMapping("/visible/onlyme")
+    public Response<?> setOnlyMe(@Validated @RequestBody OnlyMeVisibleReqVO onlyMeVisibleReqVO) {
+        return noteService.setOnlyMe(onlyMeVisibleReqVO);
+    }
 
 }
