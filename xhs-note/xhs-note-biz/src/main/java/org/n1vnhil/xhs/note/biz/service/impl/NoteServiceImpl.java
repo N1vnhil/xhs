@@ -5,17 +5,15 @@ import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.mysql.cj.x.protobuf.MysqlxCrud;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.units.qual.A;
-import org.n1vnhil.framework.common.enums.StatusEnum;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
-import org.n1vnhil.xhs.kv.dto.rsp.FindNoteContentRspDTO;
+import org.n1vnhil.xhs.note.biz.constant.MQConstants;
 import org.n1vnhil.xhs.note.biz.constant.RedisKeyConstants;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.TopicDO;
@@ -37,7 +35,6 @@ import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,6 +70,9 @@ public class NoteServiceImpl implements NoteService {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Resource
+    private RocketMQTemplate rocketMQTemplate;
 
     private static final Cache<Long, String> LOCAL_CACHE = Caffeine.newBuilder()
             .initialCapacity(10000) // 设置初始容量为 10000 个条目
@@ -303,9 +303,13 @@ public class NoteServiceImpl implements NoteService {
                 .build();
         noteDOMapper.update(noteDO);
 
+        // 删除redis缓存
         String key = RedisKeyConstants.buildNoteDetailKey(noteId);
         redisTemplate.delete(key);
-        LOCAL_CACHE.invalidate(noteId);
+
+        // MQ广播删除所有实例本地缓存
+        rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
+        log.info("==========> MQ: 发送删除本地缓存");
 
         NoteDO noteDO1 = noteDOMapper.selectNoteById(noteId);
         String contentUuid = noteDO1.getContentUuid();
@@ -324,6 +328,11 @@ public class NoteServiceImpl implements NoteService {
         }
 
         return Response.success();
+    }
+
+    @Override
+    public void deleteLocalNoteCache(Long noteId) {
+        LOCAL_CACHE.invalidate(noteId);
     }
 
     private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {
