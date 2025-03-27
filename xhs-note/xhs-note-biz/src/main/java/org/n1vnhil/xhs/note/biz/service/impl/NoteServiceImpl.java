@@ -23,10 +23,7 @@ import org.n1vnhil.xhs.note.biz.enums.NoteStatusEnum;
 import org.n1vnhil.xhs.note.biz.enums.NoteTypeEnum;
 import org.n1vnhil.xhs.note.biz.enums.NoteVisibleEnum;
 import org.n1vnhil.xhs.note.biz.enums.ResponseCodeEnum;
-import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailReqVO;
-import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailRspVO;
-import org.n1vnhil.xhs.note.biz.model.vo.PublishNoteReqVO;
-import org.n1vnhil.xhs.note.biz.model.vo.UpdateNoteReqVO;
+import org.n1vnhil.xhs.note.biz.model.vo.*;
 import org.n1vnhil.xhs.note.biz.rpc.DistributedIdGeneratorRpcService;
 import org.n1vnhil.xhs.note.biz.rpc.KvRpcService;
 import org.n1vnhil.xhs.note.biz.rpc.UserRpcService;
@@ -37,7 +34,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -333,6 +329,11 @@ public class NoteServiceImpl implements NoteService {
     @Override
     public void deleteLocalNoteCache(Long noteId) {
         LOCAL_CACHE.invalidate(noteId);
+    }
+
+    @Override
+    public Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO) {
+        return null;
     }
 
     private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {

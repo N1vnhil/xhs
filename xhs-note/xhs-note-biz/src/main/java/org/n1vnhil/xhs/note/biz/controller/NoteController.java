@@ -3,10 +3,7 @@ package org.n1vnhil.xhs.note.biz.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.n1vnhil.framework.biz.operationlog.aspect.ApiOperationLog;
 import org.n1vnhil.framework.common.response.Response;
-import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailReqVO;
-import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailRspVO;
-import org.n1vnhil.xhs.note.biz.model.vo.PublishNoteReqVO;
-import org.n1vnhil.xhs.note.biz.model.vo.UpdateNoteReqVO;
+import org.n1vnhil.xhs.note.biz.model.vo.*;
 import org.n1vnhil.xhs.note.biz.service.NoteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -39,6 +36,12 @@ public class NoteController {
     @PostMapping("/update")
     public Response<?> updateNoteReqVOResponse(@Validated @RequestBody UpdateNoteReqVO updateNoteReqVO) {
         return noteService.updateNote(updateNoteReqVO);
+    }
+
+    @ApiOperationLog(description = "删除笔记")
+    @PostMapping("/delete")
+    public Response<?> deleteNote(@Validated @RequestBody DeleteNoteReqVO deleteNoteReqVO) {
+        return noteService.deleteNote(deleteNoteReqVO);
     }
 
 

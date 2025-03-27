@@ -1,10 +1,7 @@
 package org.n1vnhil.xhs.note.biz.service;
 
 import org.n1vnhil.framework.common.response.Response;
-import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailReqVO;
-import org.n1vnhil.xhs.note.biz.model.vo.FindNoteDetailRspVO;
-import org.n1vnhil.xhs.note.biz.model.vo.PublishNoteReqVO;
-import org.n1vnhil.xhs.note.biz.model.vo.UpdateNoteReqVO;
+import org.n1vnhil.xhs.note.biz.model.vo.*;
 
 public interface NoteService {
 
@@ -34,4 +31,11 @@ public interface NoteService {
      * @param noteId
      */
     void deleteLocalNoteCache(Long noteId);
+
+    /**
+     * 删除笔记
+     * @param deleteNoteReqVO
+     * @return
+     */
+    Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO);
 }
