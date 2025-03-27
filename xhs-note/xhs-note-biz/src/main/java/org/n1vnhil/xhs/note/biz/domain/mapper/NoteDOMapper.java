@@ -16,4 +16,6 @@ public interface NoteDOMapper {
     NoteDO selectNoteById(Long id);
 
     int update(NoteDO noteDO);
+
+    int updateTop(NoteDO noteDO);
 }

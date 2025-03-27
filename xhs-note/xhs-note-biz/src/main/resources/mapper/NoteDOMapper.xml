@@ -21,4 +21,10 @@
     <select id="selectNoteById" resultType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO">
         select * from t_note where id=#{id};
     </select>
+
+    <update id="updateTop" parameterType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO">
+        update t_note
+        set top=#{top}, update_time=#{updateTime}
+        where id=#{id} and creator_id=#{creatorId}
+    </update>
 </mapper>

@@ -385,6 +385,24 @@ public class NoteServiceImpl implements NoteService {
         return Response.success();
     }
 
+    @Override
+    public Response<?> setTopStatus(TopNoteReqVO topNoteReqVO) {
+        Long noteId = topNoteReqVO.getId();
+        Long userId = LoginUserContextHolder.getLoginUserId();
+        NoteDO noteDO = NoteDO.builder()
+                .id(noteId)
+                .updateTime(LocalDateTime.now())
+                .top(topNoteReqVO.getTop())
+                .creatorId(userId)
+                .build();
+        int cnt = noteDOMapper.updateTop(noteDO);
+        if(cnt == 0) throw new BizException(ResponseCodeEnum.NOTE_CANT_OPERATE);
+
+        redisTemplate.delete(RedisKeyConstants.buildNoteDetailKey(noteId));
+        rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
+        return Response.success();
+    }
+
     private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {
         if(Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
                 && !Objects.equals(userId, creatorId)) {

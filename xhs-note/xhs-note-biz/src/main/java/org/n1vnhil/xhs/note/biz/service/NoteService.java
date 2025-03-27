@@ -45,4 +45,11 @@ public interface NoteService {
      * @return
      */
     Response<?> setOnlyMe(OnlyMeVisibleReqVO onlyMeVisibleReqVO);
+
+    /**
+     * 设置笔记置顶状态
+     * @param topNoteReqVO
+     * @return
+     */
+    Response<?> setTopStatus(TopNoteReqVO topNoteReqVO);
 }

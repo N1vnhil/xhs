@@ -50,4 +50,10 @@ public class NoteController {
         return noteService.setOnlyMe(onlyMeVisibleReqVO);
     }
 
+    @ApiOperationLog(description = "笔记置顶/取消置顶")
+    @PostMapping("/top")
+    public Response<?> top(@Validated @RequestBody TopNoteReqVO topNoteReqVO) {
+        return noteService.setTopStatus(topNoteReqVO);
+    }
+
 }
