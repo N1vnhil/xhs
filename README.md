@@ -1,3 +1,3 @@
 # xhs
 
-Imitated Xiao Hong Shu (Red) platform based on Spring Cloud microservice framework.
+Imitated 小红书 (RedNote) social content platform based on Spring Cloud Alibaba microservice framework.
