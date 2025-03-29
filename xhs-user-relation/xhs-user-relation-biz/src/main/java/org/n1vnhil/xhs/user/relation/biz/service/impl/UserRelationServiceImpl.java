@@ -3,25 +3,35 @@ package org.n1vnhil.xhs.user.relation.biz.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.framework.common.util.DateUtils;
+import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
 import org.n1vnhil.xhs.user.api.UserFeignApi;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
+import org.n1vnhil.xhs.user.relation.biz.constant.MQConstants;
 import org.n1vnhil.xhs.user.relation.biz.constant.RedisKeyConstants;
 import org.n1vnhil.xhs.user.relation.biz.domain.dataobject.FollowingDO;
 import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FollowingDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.enums.LuaResultEnum;
 import org.n1vnhil.xhs.user.relation.biz.enums.ResponseCodeEnum;
+import org.n1vnhil.xhs.user.relation.biz.model.dto.FollowUserMqDTO;
 import org.n1vnhil.xhs.user.relation.biz.model.vo.FollowUserReqVO;
 import org.n1vnhil.xhs.user.relation.biz.rpc.UserRpcService;
 import org.n1vnhil.xhs.user.relation.biz.service.UserRelationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.PathResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 
@@ -30,8 +40,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 @Service
 public class UserRelationServiceImpl implements UserRelationService {
+
+    @Resource
+    private RocketMQTemplate rocketMQTemplate;
 
     @Autowired
     private UserRpcService userRpcService;
@@ -69,7 +83,8 @@ public class UserRelationServiceImpl implements UserRelationService {
          */
         script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/follow_check_and_add.lua")));
         script.setResultType(Long.class);
-        long timestamp = DateUtils.localDateTime2Timestamp(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        long timestamp = DateUtils.localDateTime2Timestamp(now);
         Long result = redisTemplate.execute(script, Collections.singletonList(key), followId, timestamp);
         checkLuaScriptResult(result);
 
@@ -95,6 +110,27 @@ public class UserRelationServiceImpl implements UserRelationService {
                 checkLuaScriptResult(result);
             }
         }
+
+        // 发送MQ
+        FollowUserMqDTO followUserMqDTO = FollowUserMqDTO.builder()
+                .userId(userId)
+                .followId(followId)
+                .createTime(now)
+                .build();
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(followUserMqDTO)).build();
+        String destination = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW + ":" + MQConstants.TAG_FOLLOW;
+        log.info("==========> MQ：发送关注消息，消息体：{}", followUserMqDTO);
+        rocketMQTemplate.asyncSend(destination, message, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                log.info("==========> MQ：发送成功, Result：{}", sendResult);
+            }
+
+            @Override
+            public void onException(Throwable throwable) {
+                log.error("==========> MQ：发送异常", throwable);
+            }
+        });
 
         return Response.success();
     }
