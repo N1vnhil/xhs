@@ -30,7 +30,7 @@ import java.util.Objects;
 
 @Component
 @Slf4j
-@RocketMQMessageListener(consumerGroup = "xhs_group",
+@RocketMQMessageListener(consumerGroup = "xhs_group_" + MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW,
         topic = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW,
         consumeMode = ConsumeMode.ORDERLY
 )

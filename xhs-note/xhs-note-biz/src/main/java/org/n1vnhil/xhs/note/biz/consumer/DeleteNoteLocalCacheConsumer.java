@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@RocketMQMessageListener(consumerGroup = "xhs_group",
+@RocketMQMessageListener(consumerGroup = "xhs_group_" + MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE,
     topic = MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE,
         messageModel = MessageModel.BROADCASTING)
 public class DeleteNoteLocalCacheConsumer implements RocketMQListener<String> {
