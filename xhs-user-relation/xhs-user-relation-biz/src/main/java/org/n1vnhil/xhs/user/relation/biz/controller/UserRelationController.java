@@ -2,7 +2,10 @@ package org.n1vnhil.xhs.user.relation.biz.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.n1vnhil.framework.biz.operationlog.aspect.ApiOperationLog;
+import org.n1vnhil.framework.common.response.PageResponse;
 import org.n1vnhil.framework.common.response.Response;
+import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingListReqVO;
+import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingUserRspVO;
 import org.n1vnhil.xhs.user.relation.biz.model.vo.FollowUserReqVO;
 import org.n1vnhil.xhs.user.relation.biz.model.vo.UnfollowUserReqVO;
 import org.n1vnhil.xhs.user.relation.biz.service.UserRelationService;
@@ -31,6 +34,12 @@ public class UserRelationController {
     @ApiOperationLog(description = "取关用户")
     public Response<?> unfollow(@Validated @RequestBody UnfollowUserReqVO unfollowUserReqVO) {
         return userRelationService.unfollow(unfollowUserReqVO);
+    }
+
+    @PostMapping("/following/list")
+    @ApiOperationLog(description = "查询关注列表")
+    public PageResponse<FindFollowingUserRspVO> findFollowingUsers(@Validated @RequestBody FindFollowingListReqVO findFollowingListReqVO)  {
+        return userRelationService.findFollowingUserList(findFollowingListReqVO);
     }
 
 }

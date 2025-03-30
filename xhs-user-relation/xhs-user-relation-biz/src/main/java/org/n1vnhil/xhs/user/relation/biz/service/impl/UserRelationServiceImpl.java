@@ -2,12 +2,14 @@ package org.n1vnhil.xhs.user.relation.biz.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
+import com.mysql.cj.x.protobuf.MysqlxCrud;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.n1vnhil.framework.common.exception.BizException;
+import org.n1vnhil.framework.common.response.PageResponse;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.framework.common.util.DateUtils;
 import org.n1vnhil.framework.common.util.JsonUtils;
@@ -21,6 +23,8 @@ import org.n1vnhil.xhs.user.relation.biz.enums.LuaResultEnum;
 import org.n1vnhil.xhs.user.relation.biz.enums.ResponseCodeEnum;
 import org.n1vnhil.xhs.user.relation.biz.model.dto.FollowUserMqDTO;
 import org.n1vnhil.xhs.user.relation.biz.model.dto.UnfollowUserMqDTO;
+import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingListReqVO;
+import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingUserRspVO;
 import org.n1vnhil.xhs.user.relation.biz.model.vo.FollowUserReqVO;
 import org.n1vnhil.xhs.user.relation.biz.model.vo.UnfollowUserReqVO;
 import org.n1vnhil.xhs.user.relation.biz.rpc.UserRpcService;
@@ -38,6 +42,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -208,6 +213,42 @@ public class UserRelationServiceImpl implements UserRelationService {
         });
 
         return Response.success();
+    }
+
+    @Override
+    public PageResponse<FindFollowingUserRspVO> findFollowingUserList(FindFollowingListReqVO findFollowingListReqVO) {
+        Long userId = findFollowingListReqVO.getUserId();
+        Integer pageNo = findFollowingListReqVO.getPage();
+        String redisKey = RedisKeyConstants.buildUserFollowingKey(userId);
+        long total = redisTemplate.opsForZSet().zCard(redisKey);
+
+        List<FindFollowingUserRspVO> findFollowingUserRspVOS = null;
+        if(total > 0) {
+            long limit = 10;
+            long totalPage = PageResponse.getTotalPages(total, limit);
+
+            if(pageNo > totalPage) return PageResponse.success(null, pageNo, total);
+            long offset = (pageNo - 1) * limit;
+            Set<Object> followingUserIdsSet = redisTemplate.opsForZSet()
+                    .reverseRangeByScore(redisKey, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, offset, limit);
+            if(CollUtil.isNotEmpty(followingUserIdsSet)) {
+                List<Long> userIds = followingUserIdsSet.stream().map(o -> Long.valueOf(o.toString())).toList();
+                List<FindUserByIdRspDTO> findUserByIdRspDTOS = userRpcService.getUserByIds(userIds);
+                if(CollUtil.isNotEmpty(findUserByIdRspDTOS)) {
+                    findFollowingUserRspVOS = findUserByIdRspDTOS.stream().map(
+                            findUserByIdRspDTO -> FindFollowingUserRspVO.builder()
+                                    .userId(findUserByIdRspDTO.getId())
+                                    .avatar(findUserByIdRspDTO.getAvatar())
+                                    .introduction(findUserByIdRspDTO.getIntroduction())
+                                    .nickname(findUserByIdRspDTO.getNickname())
+                                    .build()).toList();
+                }
+            }
+        } else {
+            // TODO: 缓存未命中，查询数据库
+        }
+
+        return PageResponse.success(findFollowingUserRspVOS, pageNo, total);
     }
 
     /**
