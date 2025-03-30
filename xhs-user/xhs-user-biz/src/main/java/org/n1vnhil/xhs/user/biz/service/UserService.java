@@ -3,12 +3,11 @@ package org.n1vnhil.xhs.user.biz.service;
 
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.xhs.user.biz.model.vo.UpdateUserReqVO;
-import org.n1vnhil.xhs.user.dto.req.FindUserByIdReqDTO;
-import org.n1vnhil.xhs.user.dto.req.FindUserByPhoneReqDTO;
-import org.n1vnhil.xhs.user.dto.req.RegisterUserReqDTO;
-import org.n1vnhil.xhs.user.dto.req.UpdateUserPasswordReqDTO;
+import org.n1vnhil.xhs.user.dto.req.*;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
+
+import java.util.List;
 
 public interface UserService {
 
@@ -45,5 +44,12 @@ public interface UserService {
      * @return
      */
     Response<FindUserByIdRspDTO> findUserById(FindUserByIdReqDTO findUserByIdReqDTO);
+
+    /**
+     * 用户批量查询
+     * @param findUserByIdsReqDTO
+     * @return
+     */
+    Response<List<FindUserByIdRspDTO>> findUserByIds(FindUserByIdsReqDTO findUserByIdsReqDTO);
 
 }

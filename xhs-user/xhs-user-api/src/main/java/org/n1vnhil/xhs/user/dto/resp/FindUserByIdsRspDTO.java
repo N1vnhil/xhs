@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FindUserByIdRspDTO {
+public class FindUserByIdsRspDTO {
 
     private Long id;
 

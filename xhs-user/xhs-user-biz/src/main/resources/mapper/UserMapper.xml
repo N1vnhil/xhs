@@ -28,4 +28,13 @@
         where id=#{id}
     </update>
 
+    <select id="selectByIds" resultType="org.n1vnhil.xhs.user.biz.domain.dataobject.UserDO">
+        select id, nickname, avatar, introduction from t_user
+        where status=0 and deleted=0
+        and id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
 </mapper>

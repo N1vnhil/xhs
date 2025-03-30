@@ -1,5 +1,6 @@
 package org.n1vnhil.xhs.user.biz.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -28,11 +29,9 @@ import org.n1vnhil.xhs.user.biz.model.vo.UpdateUserReqVO;
 import org.n1vnhil.xhs.user.biz.rpc.DistributedIdGeneratorRpcService;
 import org.n1vnhil.xhs.user.biz.rpc.OssRpcService;
 import org.n1vnhil.xhs.user.biz.service.UserService;
-import org.n1vnhil.xhs.user.dto.req.FindUserByIdReqDTO;
-import org.n1vnhil.xhs.user.dto.req.FindUserByPhoneReqDTO;
-import org.n1vnhil.xhs.user.dto.req.RegisterUserReqDTO;
-import org.n1vnhil.xhs.user.dto.req.UpdateUserPasswordReqDTO;
+import org.n1vnhil.xhs.user.dto.req.*;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
+import org.n1vnhil.xhs.user.dto.resp.FindUserByIdsRspDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -43,11 +42,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -293,5 +290,63 @@ public class UserServiceImpl implements UserService {
         });
 
         return Response.success(findUserByIdRspDTO);
+    }
+
+    @Override
+    public Response<List<FindUserByIdRspDTO>> findUserByIds(FindUserByIdsReqDTO findUserByIdsReqDTO) {
+        List<Long> ids = findUserByIdsReqDTO.getIds();
+        List<String> redisKeys = ids.stream().map(
+                RedisKeyConstants::buildUserInfoKey
+        ).toList();
+
+        // 查询 redis 缓存
+        List<Object> redisValues = redisTemplate.opsForValue().multiGet(redisKeys);
+        if(CollUtil.isNotEmpty(redisValues)) {
+            redisValues = redisValues.stream().filter(Objects::nonNull).toList();
+        }
+
+        List<FindUserByIdRspDTO> findUserByIdRspDTOS = new ArrayList<>();
+        if(CollUtil.isNotEmpty(redisValues)) {
+            findUserByIdRspDTOS = redisValues.stream().map(
+                    v -> JsonUtils.parseObject((String) v, FindUserByIdRspDTO.class)
+            ).toList();
+        }
+
+        if(CollUtil.size(findUserByIdRspDTOS) == CollUtil.size(ids)) {
+            return Response.success(findUserByIdRspDTOS);
+        }
+
+        // 缓存数据不全，筛选未缓存的数据，查询数据库
+        List<Long> uncachedUserIds = null;
+        if(CollUtil.isNotEmpty(redisValues)) {
+            Map<Long, FindUserByIdRspDTO> map = findUserByIdRspDTOS.stream()
+                    .collect(Collectors.toMap(FindUserByIdRspDTO::getId, p -> p));
+            uncachedUserIds = ids.stream()
+                    .filter(id -> Objects.isNull(map.get(id)))
+                    .toList();
+        } else {
+            uncachedUserIds = ids;
+        }
+
+        // 执行批量查询
+        List<UserDO> userDOS = userMapper.selectByIds(uncachedUserIds);
+        List<FindUserByIdRspDTO> findUserByIdRspDTOS1 = null;
+        if(CollUtil.isNotEmpty(userDOS)) {
+            findUserByIdRspDTOS1 = userDOS.stream()
+                    .map(userDO -> FindUserByIdRspDTO.builder()
+                            .id(userDO.getId())
+                            .avatar(userDO.getAvatar())
+                            .nickname(userDO.getNickname())
+                            .introduction(userDO.getIntroduction())
+                            .build())
+                    .toList();
+            // TODO: 同步数据到redis
+        }
+
+        if(CollUtil.isNotEmpty(findUserByIdRspDTOS1)) {
+            findUserByIdRspDTOS.addAll(findUserByIdRspDTOS1);
+        }
+
+        return Response.success(findUserByIdRspDTOS);
     }
 }
