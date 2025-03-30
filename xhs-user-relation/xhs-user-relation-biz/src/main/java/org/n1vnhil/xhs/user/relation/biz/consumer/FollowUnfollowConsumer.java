@@ -1,5 +1,6 @@
 package org.n1vnhil.xhs.user.relation.biz.consumer;
 
+import com.google.common.util.concurrent.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
@@ -11,7 +12,6 @@ import org.n1vnhil.xhs.user.relation.biz.domain.dataobject.FollowingDO;
 import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FanDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FollowingDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.model.dto.FollowUserMqDTO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FollowUserReqVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -33,12 +33,16 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
     @Autowired
     private FollowingDOMapper followingDOMapper;
 
+    @Autowired
+    private RateLimiter rateLimiter;
+
     public FollowUnfollowConsumer(TransactionTemplate transactionTemplate) {
         this.transactionTemplate = transactionTemplate;
     }
 
     @Override
     public void onMessage(Message message) {
+        rateLimiter.acquire();
         String body = new String(message.getBody());
         String tags = message.getTags();
         log.info("==========> 消费消息：{}, 标签{}", body, tags);
