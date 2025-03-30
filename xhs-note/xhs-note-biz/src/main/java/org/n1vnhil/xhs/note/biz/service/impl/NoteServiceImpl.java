@@ -259,6 +259,8 @@ public class NoteServiceImpl implements NoteService {
     @Override
     public Response<?> updateNote(UpdateNoteReqVO updateNoteReqVO) {
         Long noteId = updateNoteReqVO.getId();
+        checkOperatePermission(noteId);
+
         NoteTypeEnum noteTypeEnum = NoteTypeEnum.valueOf(updateNoteReqVO.getType());
         if(Objects.isNull(noteTypeEnum)) {
             throw new BizException(ResponseCodeEnum.NOTE_TYPE_ERROR);
@@ -337,6 +339,7 @@ public class NoteServiceImpl implements NoteService {
     @Override
     public Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO) {
         Long noteId = deleteNoteReqVO.getId();
+        checkOperatePermission(noteId);
         NoteDO noteDO = NoteDO.builder()
                 .id(noteId)
                 .status(NoteStatusEnum.DELETED.getCode())
@@ -362,6 +365,8 @@ public class NoteServiceImpl implements NoteService {
     @Override
     public Response<?> setOnlyMe(OnlyMeVisibleReqVO onlyMeVisibleReqVO) {
         Long noteId = onlyMeVisibleReqVO.getId();
+        checkOperatePermission(noteId);
+
         NoteDO noteDO = NoteDO.builder()
                 .id(noteId)
                 .visible(NoteVisibleEnum.PRIVATE.getCode())
@@ -410,6 +415,21 @@ public class NoteServiceImpl implements NoteService {
         if(Objects.nonNull(findNoteDetailRspVO)) {
             Integer visible = findNoteDetailRspVO.getVisible();
             checkNoteVisible(visible, userId, findNoteDetailRspVO.getCreatorId());
+        }
+    }
+
+    private void checkOperatePermission(Long noteId) {
+        Long userId = LoginUserContextHolder.getLoginUserId();
+        NoteDO noteDO = noteDOMapper.selectNoteById(noteId);
+
+        // 笔记判空
+        if(Objects.isNull(noteDO)) {
+            throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+        }
+
+        // 笔记操作权限校验
+        if(!Objects.equals(userId, noteDO.getCreatorId())) {
+            throw new BizException(ResponseCodeEnum.NOTE_CANT_OPERATE);
         }
     }
 }
