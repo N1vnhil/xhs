@@ -3,6 +3,7 @@ package org.n1vnhil.xhs.user.relation.biz.consumer;
 import com.google.common.util.concurrent.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.spring.annotation.ConsumeMode;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.n1vnhil.framework.common.util.DateUtils;
@@ -29,7 +30,10 @@ import java.util.Objects;
 
 @Component
 @Slf4j
-@RocketMQMessageListener(consumerGroup = "xhs_group", topic = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW)
+@RocketMQMessageListener(consumerGroup = "xhs_group",
+        topic = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW,
+        consumeMode = ConsumeMode.ORDERLY
+)
 public class FollowUnfollowConsumer implements RocketMQListener<Message> {
 
     @Autowired

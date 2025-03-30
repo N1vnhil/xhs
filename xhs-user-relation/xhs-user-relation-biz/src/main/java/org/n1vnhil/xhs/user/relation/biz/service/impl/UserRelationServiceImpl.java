@@ -123,7 +123,8 @@ public class UserRelationServiceImpl implements UserRelationService {
         Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(followUserMqDTO)).build();
         String destination = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW + ":" + MQConstants.TAG_FOLLOW;
         log.info("==========> MQ：发送关注消息，消息体：{}", followUserMqDTO);
-        rocketMQTemplate.asyncSend(destination, message, new SendCallback() {
+        String hashKey = String.valueOf(userId);
+        rocketMQTemplate.asyncSendOrderly(destination, message, hashKey, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
                 log.info("==========> MQ：关注发送成功, Result：{}", sendResult);
@@ -197,7 +198,8 @@ public class UserRelationServiceImpl implements UserRelationService {
         Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(unfollowUserMqDTO)).build();
         String destination = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW + ":" + MQConstants.TAG_UNFOLLOW;
 
-        rocketMQTemplate.asyncSend(destination, message, new SendCallback() {
+        String hashKey = String.valueOf(userId);
+        rocketMQTemplate.asyncSendOrderly(destination, message, hashKey, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
                 log.info("==========> MQ: 取关消息发送成功, result: {}", sendResult);
