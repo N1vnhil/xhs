@@ -58,4 +58,9 @@ public class PageResponse<T> extends Response<List<T>> {
         return pageSize == 0 ? 0 : (totalCount + pageSize - 1) / pageSize;
     }
 
+    public static long getOffset(long pageNo, long pageSize) {
+        if(pageNo < 1) pageNo = 1;
+        return (pageNo - 1) * pageSize;
+    }
+
 }

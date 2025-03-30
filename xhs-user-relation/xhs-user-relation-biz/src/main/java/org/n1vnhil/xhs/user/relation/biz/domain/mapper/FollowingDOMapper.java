@@ -17,4 +17,10 @@ public interface FollowingDOMapper {
 
     @Delete("delete from t_following where user_id=#{userId} and following_user_id=#{unfollowUserId}")
     int deleteByUserIdAndUnfollowUserId(@Param("userId") Long userId, @Param("unfollowUserId") Long unfollowUserId);
+
+    @Select("select count(id) from t_following where user_id=#{userId}")
+    int countByUserId(Long userId);
+
+    @Select("select * from t_following where user_id=#{userId} order by create_time desc limit #{offset}, #{limit}")
+    List<FollowingDO> pageSelect(@Param("userId") Long userId, @Param("offset") Long offset, @Param("limit") Long limit);
 }

@@ -35,6 +35,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 
@@ -47,6 +48,9 @@ import java.util.Set;
 @Slf4j
 @Service
 public class UserRelationServiceImpl implements UserRelationService {
+
+    @Resource(name = "taskExecutor")
+    private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
     @Resource
     private RocketMQTemplate rocketMQTemplate;
@@ -221,10 +225,9 @@ public class UserRelationServiceImpl implements UserRelationService {
         Integer pageNo = findFollowingListReqVO.getPage();
         String redisKey = RedisKeyConstants.buildUserFollowingKey(userId);
         long total = redisTemplate.opsForZSet().zCard(redisKey);
-
+        long limit = 10;
         List<FindFollowingUserRspVO> findFollowingUserRspVOS = null;
         if(total > 0) {
-            long limit = 10;
             long totalPage = PageResponse.getTotalPages(total, limit);
 
             if(pageNo > totalPage) return PageResponse.success(null, pageNo, total);
@@ -246,6 +249,16 @@ public class UserRelationServiceImpl implements UserRelationService {
             }
         } else {
             // TODO: 缓存未命中，查询数据库
+            long count = followingDOMapper.countByUserId(userId);
+            long totalPages = PageResponse.getTotalPages(count, limit);
+            if(pageNo > totalPages) return PageResponse.success(null, pageNo, count);
+            long offset = PageResponse.getOffset(pageNo, limit);
+            List<FollowingDO> followingDOS = followingDOMapper.pageSelect(userId, offset, limit);
+            if(CollUtil.isNotEmpty(followingDOS)) {
+                List<Long> userIds = followingDOS.stream().map(FollowingDO::getUserId).toList();
+                findFollowingUserRspVOS = rpcUserServiceAndDTO2VO(userIds, findFollowingUserRspVOS);
+                threadPoolTaskExecutor.execute(() -> syncFollowingList2Redis(userId));
+            }
         }
 
         return PageResponse.success(findFollowingUserRspVOS, pageNo, total);
@@ -283,5 +296,34 @@ public class UserRelationServiceImpl implements UserRelationService {
         }
         args[argsLength - 1] = expireTime;
         return args;
+    }
+
+    /**
+     * rpc服务批量查询用户信息，并转换至VO
+     * @param userIds
+     * @param findFollowingUserRspVOS
+     * @return
+     */
+    private List<FindFollowingUserRspVO> rpcUserServiceAndDTO2VO(List<Long> userIds, List<FindFollowingUserRspVO> findFollowingUserRspVOS) {
+        List<FindUserByIdRspDTO> findUserByIdRspDTOS = userRpcService.getUserByIds(userIds);
+        if(CollUtil.isNotEmpty(findUserByIdRspDTOS)) {
+            findFollowingUserRspVOS = findUserByIdRspDTOS.stream()
+                    .map(dto -> FindFollowingUserRspVO.builder()
+                            .nickname(dto.getNickname())
+                            .avatar(dto.getAvatar())
+                            .introduction(dto.getIntroduction())
+                            .userId(dto.getId())
+                            .build())
+                    .toList();
+        }
+        return findFollowingUserRspVOS;
+    }
+
+    /**
+     * 异步同步用户数据至redis
+     * @param userId
+     */
+    private void syncFollowingList2Redis(Long userId) {
+
     }
 }
