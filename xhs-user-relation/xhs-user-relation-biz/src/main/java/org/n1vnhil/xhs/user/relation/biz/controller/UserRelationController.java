@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.n1vnhil.framework.biz.operationlog.aspect.ApiOperationLog;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.xhs.user.relation.biz.model.vo.FollowUserReqVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.UnfollowUserReqDTO;
+import org.n1vnhil.xhs.user.relation.biz.model.vo.UnfollowUserReqVO;
 import org.n1vnhil.xhs.user.relation.biz.service.UserRelationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -29,8 +29,8 @@ public class UserRelationController {
 
     @PostMapping("/unfollow")
     @ApiOperationLog(description = "取关用户")
-    public Response<?> unfollow(@Validated @RequestBody UnfollowUserReqDTO unfollowUserReqDTO) {
-        return userRelationService.unfollow(unfollowUserReqDTO);
+    public Response<?> unfollow(@Validated @RequestBody UnfollowUserReqVO unfollowUserReqVO) {
+        return userRelationService.unfollow(unfollowUserReqVO);
     }
 
 }

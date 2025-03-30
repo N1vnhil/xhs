@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UnfollowUserReqDTO {
+public class UnfollowUserReqVO {
 
     @NotNull(message = "被取关用户id不能为空")
     private Long unfollowUserId;
