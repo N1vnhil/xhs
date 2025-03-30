@@ -152,14 +152,42 @@ public class UserRelationServiceImpl implements UserRelationService {
         FindUserByIdRspDTO findUserByIdReqDTO = userRpcService.getUserById(userId);
         if(Objects.isNull(findUserByIdReqDTO)) throw new BizException(ResponseCodeEnum.FOLLOW_USER_NOT_EXISTED);
 
-        // 校验是否已经关注取关用户
+        // 校验并取关用户
         String followingRedisKey = RedisKeyConstants.buildUserFollowingKey(userId);
-        Double score = redisTemplate.opsForZSet().score(followingRedisKey, unfollowUserId);
-        if(Objects.isNull(score)) {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/unfollow_check_and_delete.lua")));
+        script.setResultType(Long.class);
+        Long result = redisTemplate.execute(script, Collections.singletonList(followingRedisKey), unfollowUserId);
+
+        // 校验Lua脚本结果
+        // 未关注用户
+        if(Objects.equals(result, LuaResultEnum.NOT_FOLLOWED.getCode())) {
             throw new BizException(ResponseCodeEnum.NOT_FOLLOWED);
         }
 
-        redisTemplate.opsForZSet().remove(followingRedisKey, unfollowUserId);
+        //  关注列表缓存不存在
+        if(Objects.equals(result, LuaResultEnum.ZSET_NOT_EXIST.getCode())) {
+            List<FollowingDO> followingDOS = followingDOMapper.selectFollowUserByUserId(userId);
+            long expireTime = 60*60*24 + RandomUtil.randomInt(60*60*24);
+            if(CollUtil.isEmpty(followingDOS)) {
+                throw new BizException(ResponseCodeEnum.NOT_FOLLOWED);
+            } else {
+                // 同步缓存到redis
+                Object[] args = buildLuaArgs(followingDOS, expireTime);
+                DefaultRedisScript<Long> script3 = new DefaultRedisScript<>();
+                script3.setResultType(Long.class);
+                script3.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/follow_batch_add_and_expire.lua")));
+                redisTemplate.execute(script3, Collections.singletonList(followingRedisKey), args);
+
+                // 校验并取关用户
+                result = redisTemplate.execute(script, Collections.singletonList(followingRedisKey), unfollowUserId);
+                if(Objects.equals(result, LuaResultEnum.NOT_FOLLOWED.getCode())) {
+                    throw new BizException(ResponseCodeEnum.NOT_FOLLOWED);
+                }
+            }
+        }
+
+        // 发送MQ消息
         UnfollowUserMqDTO unfollowUserMqDTO = UnfollowUserMqDTO.builder()
                 .userId(userId)
                 .unfollowUserId(unfollowUserId)
