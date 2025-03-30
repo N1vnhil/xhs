@@ -3,8 +3,10 @@ package org.n1vnhil.xhs.user.biz.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
+import com.alibaba.nacos.shaded.io.grpc.internal.JsonUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.mysql.cj.x.protobuf.MysqlxCrud;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +36,7 @@ import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdsRspDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -76,6 +79,8 @@ public class UserServiceImpl implements UserService {
             .maximumSize(10000) // 最大容量
             .expireAfterWrite(1, TimeUnit.HOURS)
             .build();
+    @Autowired
+    private UserService userService;
 
     /**
      * 更新用户信息
@@ -279,6 +284,7 @@ public class UserServiceImpl implements UserService {
                 .id(userId)
                 .nickname(userDO.getNickname())
                 .avatar(userDO.getAvatar())
+                .introduction(userDO.getIntroduction())
                 .build();
 
         // 异步写入 redis
@@ -340,7 +346,27 @@ public class UserServiceImpl implements UserService {
                             .introduction(userDO.getIntroduction())
                             .build())
                     .toList();
-            // TODO: 同步数据到redis
+
+            // 在异步线程中同步数据到redis
+            List<FindUserByIdRspDTO> cacheList = findUserByIdRspDTOS1;
+            threadPoolTaskExecutor.submit(() -> {
+                Map<Long, FindUserByIdRspDTO> map = cacheList.stream().collect(
+                        Collectors.toMap(FindUserByIdRspDTO::getId, p -> p)
+                );
+
+                // 执行 pipeline 操作
+                redisTemplate.executePipelined((RedisCallback<Void>) connection -> {
+                    for(UserDO userDO: userDOS) {
+                        Long userId = userDO.getId();
+                        String key = RedisKeyConstants.buildUserInfoKey(userId);
+                        FindUserByIdRspDTO findUserByIdRspDTO = map.get(userId);
+                        String value = JsonUtils.toJsonString(findUserByIdRspDTO);
+                        long expireTime = 60*60*24 + RandomUtil.randomInt(60*60*24);
+                        redisTemplate.opsForValue().set(key, value, expireTime, TimeUnit.SECONDS);
+                    }
+                    return null;
+                });
+            });
         }
 
         if(CollUtil.isNotEmpty(findUserByIdRspDTOS1)) {
