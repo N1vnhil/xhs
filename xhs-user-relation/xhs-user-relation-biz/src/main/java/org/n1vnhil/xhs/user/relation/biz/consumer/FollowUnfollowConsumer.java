@@ -14,6 +14,7 @@ import org.n1vnhil.xhs.user.relation.biz.domain.dataobject.FollowingDO;
 import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FanDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FollowingDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.model.dto.FollowUserMqDTO;
+import org.n1vnhil.xhs.user.relation.biz.model.dto.UnfollowUserMqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -46,13 +47,16 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+
     public FollowUnfollowConsumer(TransactionTemplate transactionTemplate) {
         this.transactionTemplate = transactionTemplate;
     }
 
     @Override
     public void onMessage(Message message) {
+        // Guava令牌桶流量控制
         rateLimiter.acquire();
+
         String body = new String(message.getBody());
         String tags = message.getTags();
         log.info("==========> 消费消息：{}, 标签{}", body, tags);
@@ -64,6 +68,11 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
         }
     }
 
+
+    /**
+     * 关注消息处理
+     * @param body
+     */
     private void handleFollowTagMessage(String body) {
         FollowUserMqDTO followUserMqDTO = JsonUtils.parseObject(body, FollowUserMqDTO.class);
         if(Objects.isNull(followUserMqDTO)) return;
@@ -109,8 +118,37 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
 
     }
 
+    /**
+     * 取关消息处理
+     * @param body
+     */
     private void handleUnfollowTagMessage(String body) {
+        UnfollowUserMqDTO unfollowUserMqDTO = JsonUtils.parseObject(body, UnfollowUserMqDTO.class);
+        if(Objects.isNull(unfollowUserMqDTO)) return;
+        Long userId = unfollowUserMqDTO.getUserId();
+        Long unfollowUserId = unfollowUserMqDTO.getUnfollowUserId();
+        LocalDateTime createTime = unfollowUserMqDTO.getCreateTime();
 
+        // 编程式提交事务
+        boolean success = Boolean.TRUE.equals(transactionTemplate.execute(status -> {
+            try {
+                int cnt = followingDOMapper.deleteByUserIdAndUnfollowUserId(userId, unfollowUserId);
+                if(cnt > 0) {
+                    fanDOMapper.deleteByUserIdAndFansUserId(unfollowUserId, userId);
+                }
+                return true;
+            } catch (Exception e) {
+                status.setRollbackOnly();
+                log.error("", e);
+            }
+            return false;
+        }));
+
+        // 事务提交成功，从redis缓存中删除粉丝数据
+        if(success) {
+            String fansRedisKey = RedisKeyConstants.buildUserFansKey(userId);
+            redisTemplate.opsForZSet().remove(fansRedisKey, userId);
+        }
     }
 
 }
