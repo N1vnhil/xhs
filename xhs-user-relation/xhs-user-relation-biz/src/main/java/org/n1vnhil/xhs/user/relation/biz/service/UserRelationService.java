@@ -2,10 +2,7 @@ package org.n1vnhil.xhs.user.relation.biz.service;
 
 import org.n1vnhil.framework.common.response.PageResponse;
 import org.n1vnhil.framework.common.response.Response;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingListReqVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingUserRspVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FollowUserReqVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.UnfollowUserReqVO;
+import org.n1vnhil.xhs.user.relation.biz.model.vo.*;
 
 public interface UserRelationService {
 
@@ -30,4 +27,10 @@ public interface UserRelationService {
      */
     PageResponse<FindFollowingUserRspVO> findFollowingUserList(FindFollowingListReqVO findFollowingListReqVO);
 
+    /**
+     * 获取用户粉丝列表
+     * @param findFansListReqVO
+     * @return
+     */
+    PageResponse<FindFansUserRspVO> findFansUserList(FindFansListReqVO findFansListReqVO);
 }

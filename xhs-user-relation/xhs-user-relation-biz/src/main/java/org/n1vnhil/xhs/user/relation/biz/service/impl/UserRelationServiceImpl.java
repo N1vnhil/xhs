@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.checkerframework.checker.units.qual.C;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.PageResponse;
 import org.n1vnhil.framework.common.response.Response;
@@ -17,16 +18,15 @@ import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.n1vnhil.xhs.user.relation.biz.constant.MQConstants;
 import org.n1vnhil.xhs.user.relation.biz.constant.RedisKeyConstants;
+import org.n1vnhil.xhs.user.relation.biz.domain.dataobject.FanDO;
 import org.n1vnhil.xhs.user.relation.biz.domain.dataobject.FollowingDO;
+import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FanDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FollowingDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.enums.LuaResultEnum;
 import org.n1vnhil.xhs.user.relation.biz.enums.ResponseCodeEnum;
 import org.n1vnhil.xhs.user.relation.biz.model.dto.FollowUserMqDTO;
 import org.n1vnhil.xhs.user.relation.biz.model.dto.UnfollowUserMqDTO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingListReqVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingUserRspVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FollowUserReqVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.UnfollowUserReqVO;
+import org.n1vnhil.xhs.user.relation.biz.model.vo.*;
 import org.n1vnhil.xhs.user.relation.biz.rpc.UserRpcService;
 import org.n1vnhil.xhs.user.relation.biz.service.UserRelationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +63,9 @@ public class UserRelationServiceImpl implements UserRelationService {
 
     @Autowired
     private FollowingDOMapper followingDOMapper;
+
+    @Autowired
+    private FanDOMapper fanDOMapper;
 
     public Response<?> follow(FollowUserReqVO followUserReqVO) {
         Long userId = LoginUserContextHolder.getLoginUserId();
@@ -266,6 +269,43 @@ public class UserRelationServiceImpl implements UserRelationService {
         return PageResponse.success(findFollowingUserRspVOS, pageNo, total);
     }
 
+    @Override
+    public PageResponse<FindFansUserRspVO> findFansUserList(FindFansListReqVO findFansListReqVO) {
+        Long userId = findFansListReqVO.getUserId();
+        Integer page =  findFansListReqVO.getPage();
+        String key = RedisKeyConstants.buildUserFansKey(userId);
+        long total = redisTemplate.opsForZSet().zCard(key);
+        List<FindFansUserRspVO> findFansUserRspVOS = null;
+        long limit = 10;
+
+        if(total > 0) {
+            long totalPage = PageResponse.getTotalPages(total, limit);
+            if(page > totalPage) return PageResponse.success(null, page, total);
+            long offset = PageResponse.getOffset(page, limit);
+            Set<Object> followingUserIdsSet = redisTemplate.opsForZSet().reverseRangeByScore(key, Double.MIN_VALUE, Double.MAX_VALUE, offset, limit);
+            if(CollUtil.isNotEmpty(followingUserIdsSet)) {
+                List<Long> userIds = followingUserIdsSet.stream().map(
+                        o -> Long.valueOf(o.toString())
+                ).toList();
+                findFansUserRspVOS = rpcUserServiceAndCountServiceAndDTO2VO(userIds, findFansUserRspVOS);
+            }
+        } else {
+            // 查询数据库，同步到redis
+            total = fanDOMapper.countFansByUserId(userId);
+            long totalPages = PageResponse.getTotalPages(total, limit);
+            if(page > 500 || page > totalPages) return PageResponse.success(null, page, total);
+            long offset = PageResponse.getOffset(page, limit);
+            List<FanDO> fans = fanDOMapper.pageSelect(userId, offset, limit);
+            if(CollUtil.isNotEmpty(fans)) {
+                List<Long> userIds = fans.stream().map(FanDO::getFansUserId).toList();
+                findFansUserRspVOS = rpcUserServiceAndCountServiceAndDTO2VO(userIds, findFansUserRspVOS);
+                threadPoolTaskExecutor.execute(() -> syncFans2Redis(userId));
+            }
+        }
+
+        return PageResponse.success(findFansUserRspVOS, page, total);
+    }
+
     /**
      * 检查lua脚本结果
      * @param result
@@ -298,6 +338,20 @@ public class UserRelationServiceImpl implements UserRelationService {
         }
         args[argsLength - 1] = expireTime;
         return args;
+    }
+
+    private static Object[] buildFansZSetArgs(List<FanDO> fanDOS, long expireTime) {
+        int argsLength = fanDOS.size() * 2 + 1;
+        Object[] luaArgs = new Object[argsLength];
+        int i = 0;
+        for(FanDO fanDO: fanDOS) {
+            luaArgs[i] = DateUtils.localDateTime2Timestamp(fanDO.getCreateTime());
+            luaArgs[i + 1] = JsonUtils.toJsonString(fanDO);
+            i += 2;
+        }
+
+        luaArgs[argsLength - 1] = expireTime;
+        return luaArgs;
     }
 
     /**
@@ -337,4 +391,43 @@ public class UserRelationServiceImpl implements UserRelationService {
             redisTemplate.execute(script, Collections.singletonList(key), luaArgs);
         }
     }
+
+    /**
+     * 同步粉丝列表到 redis
+     * @param userId
+     */
+    private void syncFans2Redis(Long userId) {
+        List<FanDO> fans = fanDOMapper.getAllFansByUserId(userId);
+        if(CollUtil.isNotEmpty(fans)) {
+            String fansRedisKey = RedisKeyConstants.buildUserFansKey(userId);
+            long expireTime = getExpireTime1dPlusRand();
+            Object[] luaArgs = buildFansZSetArgs(fans, expireTime);
+
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+            script.setResultType(Long.class);
+            script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/follow_batch_add_and_expire.lua")));
+            redisTemplate.execute(script, Collections.singletonList(fansRedisKey), luaArgs);
+        }
+    }
+
+    private List<FindFansUserRspVO> rpcUserServiceAndCountServiceAndDTO2VO(List<Long> userIds, List<FindFansUserRspVO> findFansUserRspVOS) {
+        List<FindUserByIdRspDTO> findUserByIdRspDTOS = userRpcService.getUserByIds(userIds);
+        // TODO: rpc 批量查询粉丝数
+        if(CollUtil.isNotEmpty(findUserByIdRspDTOS)) {
+            findFansUserRspVOS = findUserByIdRspDTOS.stream()
+                    .map(dto -> FindFansUserRspVO.builder()
+                            .userId(dto.getId())
+                            .avatar(dto.getAvatar())
+                            .fansTotal(0L)
+                            .noteTotal(0L)
+                            .nickname(dto.getNickname())
+                            .build()).toList();
+        }
+        return findFansUserRspVOS;
+    }
+
+    private static long getExpireTime1dPlusRand() {
+        return 60*60*24 + RandomUtil.randomInt(60*60*24);
+    }
+
 }

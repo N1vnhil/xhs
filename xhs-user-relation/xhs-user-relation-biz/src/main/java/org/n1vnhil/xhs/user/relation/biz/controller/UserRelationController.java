@@ -4,10 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.n1vnhil.framework.biz.operationlog.aspect.ApiOperationLog;
 import org.n1vnhil.framework.common.response.PageResponse;
 import org.n1vnhil.framework.common.response.Response;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingListReqVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FindFollowingUserRspVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.FollowUserReqVO;
-import org.n1vnhil.xhs.user.relation.biz.model.vo.UnfollowUserReqVO;
+import org.n1vnhil.xhs.user.relation.biz.model.vo.*;
 import org.n1vnhil.xhs.user.relation.biz.service.UserRelationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -40,6 +37,12 @@ public class UserRelationController {
     @ApiOperationLog(description = "查询关注列表")
     public PageResponse<FindFollowingUserRspVO> findFollowingUsers(@Validated @RequestBody FindFollowingListReqVO findFollowingListReqVO)  {
         return userRelationService.findFollowingUserList(findFollowingListReqVO);
+    }
+
+    @PostMapping("/fans/list")
+    @ApiOperationLog(description = "查询粉丝列表")
+    public PageResponse<FindFansUserRspVO> findFansUser(@Validated @RequestBody FindFansListReqVO findFansListReqVO) {
+        return userRelationService.findFansUserList(findFansListReqVO);
     }
 
 }

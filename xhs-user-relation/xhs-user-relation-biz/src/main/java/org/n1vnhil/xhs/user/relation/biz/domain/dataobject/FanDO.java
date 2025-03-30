@@ -17,7 +17,7 @@ public class FanDO {
 
     private Long userId;
 
-    private Long fanUserId;
+    private Long fansUserId;
 
     private LocalDateTime createTime;
 

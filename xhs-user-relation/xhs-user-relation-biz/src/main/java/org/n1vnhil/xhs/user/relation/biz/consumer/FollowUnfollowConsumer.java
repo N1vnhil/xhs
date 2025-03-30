@@ -96,7 +96,7 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
                 // 若插入成功，插入关注数据到粉丝表
                 if(cnt > 0) {
                     fanDOMapper.insert(FanDO.builder()
-                                    .fanUserId(userId)
+                                    .fansUserId(userId)
                                     .userId(followId)
                                     .createTime(createTime)
                             .build());
