@@ -248,12 +248,14 @@ public class UserRelationServiceImpl implements UserRelationService {
                 }
             }
         } else {
-            // TODO: 缓存未命中，查询数据库
+            // 缓存未命中，查询数据库
             long count = followingDOMapper.countByUserId(userId);
             long totalPages = PageResponse.getTotalPages(count, limit);
             if(pageNo > totalPages) return PageResponse.success(null, pageNo, count);
             long offset = PageResponse.getOffset(pageNo, limit);
             List<FollowingDO> followingDOS = followingDOMapper.pageSelect(userId, offset, limit);
+
+            // 同步查询结果到redis
             if(CollUtil.isNotEmpty(followingDOS)) {
                 List<Long> userIds = followingDOS.stream().map(FollowingDO::getUserId).toList();
                 findFollowingUserRspVOS = rpcUserServiceAndDTO2VO(userIds, findFollowingUserRspVOS);
@@ -324,6 +326,15 @@ public class UserRelationServiceImpl implements UserRelationService {
      * @param userId
      */
     private void syncFollowingList2Redis(Long userId) {
-
+        List<FollowingDO> followingDOS = followingDOMapper.selectFollowUserByUserId(userId);
+        if(CollUtil.isEmpty(followingDOS)) {
+            String key = RedisKeyConstants.buildUserFollowingKey(userId);
+            long expireTime = 60*60*24 + RandomUtil.randomInt(60*60*24);
+            Object[] luaArgs = buildLuaArgs(followingDOS, expireTime);
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+            script.setResultType(Long.class);
+            script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/follow_batch_add_and_expire.lua")));
+            redisTemplate.execute(script, Collections.singletonList(key), luaArgs);
+        }
     }
 }
