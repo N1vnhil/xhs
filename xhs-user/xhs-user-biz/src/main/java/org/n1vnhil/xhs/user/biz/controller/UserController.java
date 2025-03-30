@@ -22,7 +22,7 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @PostMapping(value = "/update",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Response<?> update(@Validated UpdateUserReqVO updateUserReqVO) {
         return userService.updateUserInfo(updateUserReqVO);
     }
