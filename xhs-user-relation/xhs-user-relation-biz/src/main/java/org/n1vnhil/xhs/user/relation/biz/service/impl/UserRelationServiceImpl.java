@@ -13,6 +13,7 @@ import org.n1vnhil.framework.common.util.DateUtils;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
 import org.n1vnhil.xhs.user.api.UserFeignApi;
+import org.n1vnhil.xhs.user.dto.req.FindUserByIdReqDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.n1vnhil.xhs.user.relation.biz.constant.MQConstants;
 import org.n1vnhil.xhs.user.relation.biz.constant.RedisKeyConstants;
@@ -21,7 +22,9 @@ import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FollowingDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.enums.LuaResultEnum;
 import org.n1vnhil.xhs.user.relation.biz.enums.ResponseCodeEnum;
 import org.n1vnhil.xhs.user.relation.biz.model.dto.FollowUserMqDTO;
+import org.n1vnhil.xhs.user.relation.biz.model.dto.UnfollowUserMqDTO;
 import org.n1vnhil.xhs.user.relation.biz.model.vo.FollowUserReqVO;
+import org.n1vnhil.xhs.user.relation.biz.model.vo.UnfollowUserReqDTO;
 import org.n1vnhil.xhs.user.relation.biz.rpc.UserRpcService;
 import org.n1vnhil.xhs.user.relation.biz.service.UserRelationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,12 +126,58 @@ public class UserRelationServiceImpl implements UserRelationService {
         rocketMQTemplate.asyncSend(destination, message, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
-                log.info("==========> MQ：发送成功, Result：{}", sendResult);
+                log.info("==========> MQ：关注发送成功, Result：{}", sendResult);
             }
 
             @Override
             public void onException(Throwable throwable) {
-                log.error("==========> MQ：发送异常", throwable);
+                log.error("==========> MQ：关注发送异常", throwable);
+            }
+        });
+
+        return Response.success();
+    }
+
+    @Override
+    public Response<?> unfollow(UnfollowUserReqDTO unfollowUserReqDTO) {
+        Long userId = LoginUserContextHolder.getLoginUserId();
+        Long unfollowUserId = unfollowUserReqDTO.getUnfollowUserId();
+
+        // 校验取关对象是否为自己
+        if(Objects.equals(userId, unfollowUserId)) {
+            throw new BizException(ResponseCodeEnum.CANT_UNFOLLOW_YOUR_SELF);
+        }
+
+        // 校验取关用户是否存在
+        FindUserByIdRspDTO findUserByIdReqDTO = userRpcService.getUserById(userId);
+        if(Objects.isNull(findUserByIdReqDTO)) throw new BizException(ResponseCodeEnum.FOLLOW_USER_NOT_EXISTED);
+
+        // 校验是否已经关注取关用户
+        String followingRedisKey = RedisKeyConstants.buildUserFollowingKey(userId);
+        Double score = redisTemplate.opsForZSet().score(followingRedisKey, unfollowUserId);
+        if(Objects.isNull(score)) {
+            throw new BizException(ResponseCodeEnum.NOT_FOLLOWED);
+        }
+
+        redisTemplate.opsForZSet().remove(followingRedisKey, unfollowUserId);
+        UnfollowUserMqDTO unfollowUserMqDTO = UnfollowUserMqDTO.builder()
+                .userId(userId)
+                .unfollowUserId(unfollowUserId)
+                .createTime(LocalDateTime.now())
+                .build();
+
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(unfollowUserMqDTO)).build();
+        String destination = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW + ":" + MQConstants.TAG_UNFOLLOW;
+
+        rocketMQTemplate.asyncSend(destination, message, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                log.info("==========> MQ: 取关消息发送成功, result: {}", sendResult);
+            }
+
+            @Override
+            public void onException(Throwable throwable) {
+                log.info("==========> MQ: 取关消息发送失败", throwable);
             }
         });
 
