@@ -5,18 +5,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.n1vnhil.framework.common.util.DateUtils;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhs.user.relation.biz.constant.MQConstants;
+import org.n1vnhil.xhs.user.relation.biz.constant.RedisKeyConstants;
 import org.n1vnhil.xhs.user.relation.biz.domain.dataobject.FanDO;
 import org.n1vnhil.xhs.user.relation.biz.domain.dataobject.FollowingDO;
 import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FanDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.domain.mapper.FollowingDOMapper;
 import org.n1vnhil.xhs.user.relation.biz.model.dto.FollowUserMqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Objects;
 
 @Component
@@ -35,6 +42,9 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
 
     @Autowired
     private RateLimiter rateLimiter;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
     public FollowUnfollowConsumer(TransactionTemplate transactionTemplate) {
         this.transactionTemplate = transactionTemplate;
@@ -85,6 +95,18 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
             }
             return false;
         }));
+
+        // 更新 redis
+        if(success) {
+            DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+            script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/follow_check_and_update_fans_zset.lua")));
+            script.setResultType(Long.class);
+
+            String redisKey = RedisKeyConstants.buildUserFansKey(userId);
+            long timestamp = DateUtils.localDateTime2Timestamp(createTime);
+            redisTemplate.execute(script, Collections.singletonList(redisKey), userId, timestamp);
+        }
+
     }
 
     private void handleUnfollowTagMessage(String body) {

@@ -13,4 +13,10 @@ public class RedisKeyConstants {
         return USER_FOLLOWING_KEY_PREFIX + userId;
     }
 
+    private static final String USER_FANS_KEY_PREFIX = "fans:";
+
+    public static String buildUserFansKey(Long userId) {
+        return USER_FANS_KEY_PREFIX + userId;
+    }
+
 }
