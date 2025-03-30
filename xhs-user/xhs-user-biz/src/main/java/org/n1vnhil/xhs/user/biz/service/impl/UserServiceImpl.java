@@ -33,7 +33,6 @@ import org.n1vnhil.xhs.user.biz.rpc.OssRpcService;
 import org.n1vnhil.xhs.user.biz.service.UserService;
 import org.n1vnhil.xhs.user.dto.req.*;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
-import org.n1vnhil.xhs.user.dto.resp.FindUserByIdsRspDTO;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisCallback;
