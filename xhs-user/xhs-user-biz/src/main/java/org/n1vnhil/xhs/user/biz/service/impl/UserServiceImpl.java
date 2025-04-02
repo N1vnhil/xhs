@@ -78,8 +78,6 @@ public class UserServiceImpl implements UserService {
             .maximumSize(10000) // 最大容量
             .expireAfterWrite(1, TimeUnit.HOURS)
             .build();
-    @Autowired
-    private UserService userService;
 
     /**
      * 更新用户信息

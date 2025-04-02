@@ -2,13 +2,11 @@ package org.n1vnhil.xhs.user.relation.biz.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
-import com.mysql.cj.x.protobuf.MysqlxCrud;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.checkerframework.checker.units.qual.C;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.PageResponse;
 import org.n1vnhil.framework.common.response.Response;
