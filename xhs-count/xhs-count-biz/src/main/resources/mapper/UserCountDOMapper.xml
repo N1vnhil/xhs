@@ -10,4 +10,10 @@
         on duplicate key update fans_total = fans_total + (#{count})
     </insert>
 
+    <insert id="insertOrUpdateFollowingByUserId">
+        insert into t_user_count (user_id, following_total)
+        values (#{userId}, #{count})
+        on duplicate key update following_total = following_total + (#{count})
+    </insert>
+
 </mapper>

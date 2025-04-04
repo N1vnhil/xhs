@@ -20,4 +20,6 @@ public class RedisKeyConstants {
         return COUNT_USER_KEY_PREFIX + userId;
     }
 
+    public static String FIELD_FOLLOWING_TOTAL = "followingTotal";
+
 }

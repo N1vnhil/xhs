@@ -50,6 +50,19 @@ public class MQTest {
                     log.error("==> 【计数服务：粉丝数】MQ 发送异常: ", throwable);
                 }
             });
+
+            // 统计关注数
+            rocketMQTemplate.asyncSend(MQConstants.TOPIC_COUNT_FOLLOWING, message, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    log.info("==> 【计数服务：关注数】MQ 发送成功，SendResult: {}", sendResult);
+                }
+
+                @Override
+                public void onException(Throwable throwable) {
+                    log.error("==> 【计数服务：关注数】MQ 发送异常: ", throwable);
+                }
+            });
         }
     }
 
