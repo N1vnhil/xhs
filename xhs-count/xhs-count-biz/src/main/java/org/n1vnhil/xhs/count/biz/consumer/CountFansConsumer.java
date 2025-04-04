@@ -52,7 +52,7 @@ public class CountFansConsumer implements RocketMQListener<String> {
 
         // 按目标用户分组
         Map<Long, List<CountFollowUnfollowMqDTO>> targetUserId2CountFollowUnfollowMqDTOs = countFollowUnfollowMqDTOS.stream()
-                .collect(Collectors.groupingBy(CountFollowUnfollowMqDTO::getTargetId));
+                .collect(Collectors.groupingBy(CountFollowUnfollowMqDTO::getTargetUserId));
 
         Map<Long, Integer> count = new HashMap<>();
         for(Map.Entry<Long, List<CountFollowUnfollowMqDTO>> mapEntry: targetUserId2CountFollowUnfollowMqDTOs.entrySet()) {

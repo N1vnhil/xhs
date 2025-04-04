@@ -14,7 +14,7 @@ public class CountFollowUnfollowMqDTO {
 
     private Long userId;
 
-    private Long targetId;
+    private Long targetUserId;
 
     /**
      * 1：关注
