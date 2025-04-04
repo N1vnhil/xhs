@@ -12,4 +12,8 @@ public interface MQConstants {
      */
     String TOPIC_COUNT_FANS = "CountFansCount";
 
+    /**
+     * 粉丝计数入库 Topic
+     */
+    String TOPIC_COUNT_FANS_2_DB = "CountFans2DB";
 }
