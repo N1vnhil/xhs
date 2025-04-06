@@ -20,8 +20,10 @@ import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
 import org.n1vnhil.xhs.note.biz.constant.MQConstants;
 import org.n1vnhil.xhs.note.biz.constant.RedisKeyConstants;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO;
+import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteLikeDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.TopicDO;
 import org.n1vnhil.xhs.note.biz.domain.mapper.NoteDOMapper;
+import org.n1vnhil.xhs.note.biz.domain.mapper.NoteLikeDOMapper;
 import org.n1vnhil.xhs.note.biz.domain.mapper.TopicDOMapper;
 import org.n1vnhil.xhs.note.biz.enums.*;
 import org.n1vnhil.xhs.note.biz.model.vo.*;
@@ -40,11 +42,9 @@ import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.management.ObjectName;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -71,6 +71,9 @@ public class NoteServiceImpl implements NoteService {
     private NoteDOMapper noteDOMapper;
 
     @Autowired
+    private NoteLikeDOMapper noteLikeDOMapper;
+
+    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
     @Resource
@@ -81,6 +84,8 @@ public class NoteServiceImpl implements NoteService {
             .maximumSize(10000) // 设置缓存的最大容量为 10000 个条目
             .expireAfterWrite(1, TimeUnit.HOURS) // 设置缓存条目在写入后 1 小时过期
             .build();
+    @Autowired
+    private NoteService noteService;
 
     @Override
     public Response<?> publishNote(PublishNoteReqVO publishNoteReqVO) {
@@ -411,6 +416,7 @@ public class NoteServiceImpl implements NoteService {
     public Response<?> likeNote(LikeNoteReqVO likeNoteReqVO) {
         // 1. 笔记判空
         Long noteId = likeNoteReqVO.getId();
+        Long userId = LoginUserContextHolder.getLoginUserId();
         checkNoteExist(noteId);
 
         // 2. 判断是否点赞
@@ -427,7 +433,16 @@ public class NoteServiceImpl implements NoteService {
             }
 
             case BLOOM_NOT_EXIST -> {
-                // TODO: 从数据库校验是否点赞
+                int count = noteLikeDOMapper.selectCountByUserIdAndNoteId(userId, noteId);
+                long expireTime = 60*60*24 + RandomUtil.randomInt(60*60*24);
+                if(count > 0) {
+                    asynBatchAddNoteLikeAndExpire(userId, expireTime, bloomFilterKey);
+                    throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
+                }
+
+                script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_add_note_like_and_expire.lua")));
+                script.setResultType(Long.class);
+                redisTemplate.execute(script, Collections.singletonList(bloomFilterKey), noteId, expireTime);
             }
         }
 
@@ -482,5 +497,23 @@ public class NoteServiceImpl implements NoteService {
                 findNoteDetail(findNoteDetailReqVO);
             });
         }
+    }
+
+    private void asynBatchAddNoteLikeAndExpire(Long userId, long expireTime, String redisKey) {
+        threadPoolTaskExecutor.execute(() -> {
+            List<NoteLikeDO> noteLikeDOS = noteLikeDOMapper.selectByUserId(userId);
+            if(CollUtil.isNotEmpty(noteLikeDOS)) {
+                DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+                script.setResultType(Long.class);
+                script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/batch_bloom_add_note_like_and_expire.lua")));
+
+                List<Object> luaArgs = new ArrayList<>();
+                noteLikeDOS.forEach(noteLikeDO -> {
+                    luaArgs.add(noteLikeDO.getNoteId());
+                });
+                luaArgs.add(expireTime);
+                redisTemplate.execute(script, Collections.singletonList(redisKey), luaArgs);
+            }
+        });
     }
 }
