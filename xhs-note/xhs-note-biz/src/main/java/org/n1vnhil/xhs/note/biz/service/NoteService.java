@@ -52,4 +52,12 @@ public interface NoteService {
      * @return
      */
     Response<?> setTopStatus(TopNoteReqVO topNoteReqVO);
+
+
+    /**
+     * 笔记点赞
+     * @return
+     */
+    Response<?> likeNote(LikeNoteReqVO likeNoteReqVO);
+
 }

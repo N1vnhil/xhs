@@ -3,6 +3,7 @@ package org.n1vnhil.xhs.note.biz.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
+import com.alibaba.nacos.shaded.io.grpc.internal.JsonUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.annotation.Resource;
@@ -22,10 +23,7 @@ import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.TopicDO;
 import org.n1vnhil.xhs.note.biz.domain.mapper.NoteDOMapper;
 import org.n1vnhil.xhs.note.biz.domain.mapper.TopicDOMapper;
-import org.n1vnhil.xhs.note.biz.enums.NoteStatusEnum;
-import org.n1vnhil.xhs.note.biz.enums.NoteTypeEnum;
-import org.n1vnhil.xhs.note.biz.enums.NoteVisibleEnum;
-import org.n1vnhil.xhs.note.biz.enums.ResponseCodeEnum;
+import org.n1vnhil.xhs.note.biz.enums.*;
 import org.n1vnhil.xhs.note.biz.model.vo.*;
 import org.n1vnhil.xhs.note.biz.rpc.DistributedIdGeneratorRpcService;
 import org.n1vnhil.xhs.note.biz.rpc.KvRpcService;
@@ -33,12 +31,17 @@ import org.n1vnhil.xhs.note.biz.rpc.UserRpcService;
 import org.n1vnhil.xhs.note.biz.service.NoteService;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByIdRspDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scheduling.concurrent.DefaultManagedAwareThreadFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -404,6 +407,35 @@ public class NoteServiceImpl implements NoteService {
         return Response.success();
     }
 
+    @Override
+    public Response<?> likeNote(LikeNoteReqVO likeNoteReqVO) {
+        // 1. 笔记判空
+        Long noteId = likeNoteReqVO.getId();
+        checkNoteExist(noteId);
+
+        // 2. 判断是否点赞
+        String bloomFilterKey = RedisKeyConstants.buildBloomUserNoteLikeListKey(noteId);
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_like_check.lua")));
+        script.setResultType(Long.class);
+        Long result = redisTemplate.execute(script, Collections.singletonList(bloomFilterKey), noteId);
+        NoteLikeLuaResultEnum noteLikeLuaResultEnum = NoteLikeLuaResultEnum.valueOf(result);
+
+        switch (noteLikeLuaResultEnum) {
+            case BLOOM_LIKED -> {
+                throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
+            }
+
+            case BLOOM_NOT_EXIST -> {
+                // TODO: 从数据库校验是否点赞
+            }
+        }
+
+        // 3. 更新zset
+        // 4. 发送mq
+        return null;
+    }
+
     private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {
         if(Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
                 && !Objects.equals(userId, creatorId)) {
@@ -430,6 +462,25 @@ public class NoteServiceImpl implements NoteService {
         // 笔记操作权限校验
         if(!Objects.equals(userId, noteDO.getCreatorId())) {
             throw new BizException(ResponseCodeEnum.NOTE_CANT_OPERATE);
+        }
+    }
+
+    private void checkNoteExist(Long noteId) {
+        String findNoteDetailRspVOStrLocalCache = LOCAL_CACHE.getIfPresent(noteId);
+        FindNoteDetailRspVO findNoteDetailRspVO = JsonUtils.parseObject(findNoteDetailRspVOStrLocalCache, FindNoteDetailRspVO.class);
+        if(Objects.isNull(findNoteDetailRspVO)) {
+            String noteDetailJson = (String) redisTemplate.opsForValue().get(RedisKeyConstants.buildNoteDetailKey(noteId));
+            findNoteDetailRspVO = JsonUtils.parseObject(noteDetailJson, FindNoteDetailRspVO.class);
+
+            if(Objects.isNull(findNoteDetailRspVO)) {
+                NoteDO note = noteDOMapper.selectNoteById(noteId);
+                if(Objects.isNull(note)) throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+            }
+
+            threadPoolTaskExecutor.execute(() -> {
+                FindNoteDetailReqVO findNoteDetailReqVO = FindNoteDetailReqVO.builder().id(noteId).build();
+                findNoteDetail(findNoteDetailReqVO);
+            });
         }
     }
 }

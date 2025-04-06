@@ -8,4 +8,9 @@ public class RedisKeyConstants {
        return NOTE_DETAIL_KEY + noteId;
     }
 
+    public static final String BLOOM_USER_NOTE_LIKE_LIST_KEY = "bloom:note:likes:";
+
+    public static String buildBloomUserNoteLikeListKey(Long noteId) {
+        return BLOOM_USER_NOTE_LIKE_LIST_KEY + noteId;
+    }
 }
