@@ -9,8 +9,8 @@ import java.util.Objects;
 @AllArgsConstructor
 public enum NoteLikeLuaResultEnum {
 
-    BLOOM_NOT_EXIST(-1L),
-    BLOOM_LIKED(1L)
+    NOT_EXIST(-1L),
+    NOTE_LIKED(1L)
     ;
 
     private final Long code;

@@ -13,4 +13,11 @@ public class RedisKeyConstants {
     public static String buildBloomUserNoteLikeListKey(Long noteId) {
         return BLOOM_USER_NOTE_LIKE_LIST_KEY + noteId;
     }
+
+    public static final String USER_NOTE_LIKE_ZSET_KEY = "user:note:likes:";
+
+    public static String buildUserNoteLikeZsetKey(Long userId) {
+        return USER_NOTE_LIKE_ZSET_KEY + userId;
+    }
+
 }

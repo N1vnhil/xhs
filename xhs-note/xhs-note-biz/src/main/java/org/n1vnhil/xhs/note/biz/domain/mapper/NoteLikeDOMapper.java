@@ -15,4 +15,8 @@ public interface NoteLikeDOMapper {
 
     @Select("select * from t_note_like where user_id=#{userId} and status=1")
     List<NoteLikeDO> selectByUserId(@Param("userId") Long userId);
+
+    @Select("select * from t_note_like where user_id=#{userId} and status=1 order by create_time desc limit #{limit}")
+    List<NoteLikeDO> selectByUserIdAndLimit(@Param("userId") Long userId, @Param("limit") Integer limit);
+
 }

@@ -10,10 +10,12 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.checkerframework.checker.units.qual.C;
 import org.n1vnhil.framework.common.enums.DeletedEnum;
 import org.n1vnhil.framework.common.enums.StatusEnum;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
+import org.n1vnhil.framework.common.util.DateUtils;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.framework.context.filter.HeadUserId2ContextFilter;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
@@ -36,13 +38,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.scheduling.concurrent.DefaultManagedAwareThreadFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.management.ObjectName;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -427,14 +427,27 @@ public class NoteServiceImpl implements NoteService {
         Long result = redisTemplate.execute(script, Collections.singletonList(bloomFilterKey), noteId);
         NoteLikeLuaResultEnum noteLikeLuaResultEnum = NoteLikeLuaResultEnum.valueOf(result);
 
+        String noteLikeZsetKey = RedisKeyConstants.buildUserNoteLikeZsetKey(userId);
         switch (noteLikeLuaResultEnum) {
-            case BLOOM_LIKED -> {
-                throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
+            // 布隆过滤器判断已点赞
+            case NOTE_LIKED -> {
+                Double score = redisTemplate.opsForZSet().score(noteLikeZsetKey, noteId);
+                if(Objects.nonNull(score)) {
+                    throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
+                }
+
+                // 若布隆过滤器误判
+                int count = noteLikeDOMapper.selectCountByUserIdAndNoteId(userId, noteId);
+                if(count > 0) {
+                    asynInitUserNoteLikesZset(userId, noteLikeZsetKey);
+                    throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
+                }
             }
 
-            case BLOOM_NOT_EXIST -> {
+            // 未点赞，更新布隆过滤器
+            case NOT_EXIST -> {
                 int count = noteLikeDOMapper.selectCountByUserIdAndNoteId(userId, noteId);
-                long expireTime = 60*60*24 + RandomUtil.randomInt(60*60*24);
+                long expireTime = getRandomExpireTime();
                 if(count > 0) {
                     asynBatchAddNoteLikeAndExpire(userId, expireTime, bloomFilterKey);
                     throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
@@ -447,6 +460,25 @@ public class NoteServiceImpl implements NoteService {
         }
 
         // 3. 更新zset
+        LocalDateTime now = LocalDateTime.now();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/note_like_zset_check_and_update.lua")));
+        script.setResultType(Long.class);
+        result = redisTemplate.execute(script, Collections.singletonList(noteLikeZsetKey), noteId, DateUtils.localDateTime2Timestamp(now));
+
+        // zset不存在，重新初始化zset
+        if(Objects.equals(result, NoteLikeLuaResultEnum.NOT_EXIST)) {
+           List<NoteLikeDO> noteLikeDOS = noteLikeDOMapper.selectByUserIdAndLimit(userId, 100);
+           if(CollUtil.isNotEmpty(noteLikeDOS)) {
+               Object[] luaArgs = buildNoteLikeZsetLuaArgs(noteLikeDOS, getRandomExpireTime());
+               DefaultRedisScript<Long> script1 = new DefaultRedisScript<>();
+               script1.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/batch_add_note_like_zset_and_expire.lua")));
+               script1.setResultType(Long.class);
+               redisTemplate.execute(script1, Collections.singletonList(noteLikeZsetKey), luaArgs);
+               redisTemplate.execute(script, Collections.singletonList(noteLikeZsetKey), DateUtils.localDateTime2Timestamp(now));
+           }
+
+        }
+
         // 4. 发送mq
         return null;
     }
@@ -499,6 +531,12 @@ public class NoteServiceImpl implements NoteService {
         }
     }
 
+    /**
+     * 异步更新布隆过滤器
+     * @param userId
+     * @param expireTime
+     * @param redisKey
+     */
     private void asynBatchAddNoteLikeAndExpire(Long userId, long expireTime, String redisKey) {
         threadPoolTaskExecutor.execute(() -> {
             List<NoteLikeDO> noteLikeDOS = noteLikeDOMapper.selectByUserId(userId);
@@ -513,6 +551,40 @@ public class NoteServiceImpl implements NoteService {
                 });
                 luaArgs.add(expireTime);
                 redisTemplate.execute(script, Collections.singletonList(redisKey), luaArgs);
+            }
+        });
+    }
+
+    private static int getRandomExpireTime() {
+        return 60*60*24 + RandomUtil.randomInt(60*60*24);
+    }
+
+    private Object[] buildNoteLikeZsetLuaArgs(List<NoteLikeDO> noteLikeDOS, long expireTime) {
+        int n = noteLikeDOS.size();
+        Object[] args = new Object[n * 2 + 1];
+        int i = 0;
+        for(NoteLikeDO noteLikeDO: noteLikeDOS) {
+            args[i] = DateUtils.localDateTime2Timestamp(noteLikeDO.getCreateTime());
+            args[i + 1] = noteLikeDO.getNoteId();
+            i += 2;
+        }
+        args[n] = expireTime;
+        return args;
+    }
+
+    private void asynInitUserNoteLikesZset(Long userId, String noteLikeRedisKey) {
+        threadPoolTaskExecutor.execute(() -> {
+            boolean hasKey = redisTemplate.hasKey(noteLikeRedisKey);
+            if(!hasKey) {
+                List<NoteLikeDO> noteLikeDOS = noteLikeDOMapper.selectByUserIdAndLimit(userId, 100);
+                if(CollUtil.isNotEmpty(noteLikeDOS)) {
+                    Object[] luaArgs = buildNoteLikeZsetLuaArgs(noteLikeDOS, getRandomExpireTime());
+                    DefaultRedisScript<Long> script2 = new DefaultRedisScript<>();
+                    script2.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/batch_add_note_like_zset_and_expire.lua")));
+                    script2.setResultType(Long.class);
+                    redisTemplate.execute(script2, Collections.singletonList(noteLikeRedisKey), luaArgs);
+
+                }
             }
         });
     }
