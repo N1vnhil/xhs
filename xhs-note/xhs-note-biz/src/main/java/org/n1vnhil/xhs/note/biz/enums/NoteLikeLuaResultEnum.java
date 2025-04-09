@@ -10,7 +10,8 @@ import java.util.Objects;
 public enum NoteLikeLuaResultEnum {
 
     NOT_EXIST(-1L),
-    NOTE_LIKED(1L)
+    NOTE_LIKED(1L),
+    NOTE_LIKE_SUCCESS(0L)
     ;
 
     private final Long code;

@@ -1,4 +1,4 @@
-local key = KEY[1]
+local key = KEYS[1]
 local noteId = ARGV[1]
 local timestamp = ARGV[2]
 

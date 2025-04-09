@@ -1,4 +1,4 @@
-local key = KEY[1]
+local key = KEYS[1]
 local zaddArgs = {}
 
 for i = 1, #ARGV - 1, 2 do

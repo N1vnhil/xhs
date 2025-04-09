@@ -84,8 +84,6 @@ public class NoteServiceImpl implements NoteService {
             .maximumSize(10000) // 设置缓存的最大容量为 10000 个条目
             .expireAfterWrite(1, TimeUnit.HOURS) // 设置缓存条目在写入后 1 小时过期
             .build();
-    @Autowired
-    private NoteService noteService;
 
     @Override
     public Response<?> publishNote(PublishNoteReqVO publishNoteReqVO) {
@@ -476,11 +474,10 @@ public class NoteServiceImpl implements NoteService {
                redisTemplate.execute(script1, Collections.singletonList(noteLikeZsetKey), luaArgs);
                redisTemplate.execute(script, Collections.singletonList(noteLikeZsetKey), DateUtils.localDateTime2Timestamp(now));
            }
-
         }
 
         // 4. 发送mq
-        return null;
+        return Response.success();
     }
 
     private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {
