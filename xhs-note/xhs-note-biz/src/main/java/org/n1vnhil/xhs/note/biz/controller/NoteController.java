@@ -62,4 +62,10 @@ public class NoteController {
         return noteService.likeNote(likeNoteReqVO);
     }
 
+    @ApiOperationLog(description = "取消点赞")
+    @PostMapping("/cancelLike")
+    public Response<?> cancelLike(@Validated @RequestBody CancelLikeNoteReqVO cancelLikeNoteReqVO) {
+        return noteService.cancelLikeNote(cancelLikeNoteReqVO);
+    }
+
 }

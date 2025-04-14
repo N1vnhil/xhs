@@ -480,6 +480,46 @@ public class NoteServiceImpl implements NoteService {
         return Response.success();
     }
 
+    @Override
+    public Response<?> cancelLikeNote(CancelLikeNoteReqVO cancelLikeNoteReqVO) {
+        Long noteId = cancelLikeNoteReqVO.getId();
+
+        // 校验笔记是否存在
+        checkNoteExist(noteId);
+
+        // 校验笔记是否被点赞
+        Long userId = LoginUserContextHolder.getLoginUserId();
+        String bloomKey = RedisKeyConstants.buildNoteDetailKey(userId);
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setResultType(Long.class);
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_remove_like_check.lua")));
+        Long result = redisTemplate.execute(script, Collections.singletonList(bloomKey), noteId);
+
+        switch (NoteRemoveLikeLuaResultEnum.valueOf(result)) {
+            // 布隆过滤器不存在
+            case NOT_EXIST -> {
+                threadPoolTaskExecutor.submit(() -> {
+                    long expireTime = getRandomExpireTime();
+                    asynBatchAddNoteLikeAndExpire(userId, expireTime, bloomKey);
+                });
+
+                int count = noteLikeDOMapper.selectCountByUserIdAndNoteId(userId, noteId);
+                if(count == 0) throw new BizException(ResponseCodeEnum.NOTE_NOT_LIKED);
+            }
+
+            // 笔记未点赞
+            case NOTE_NOT_LIKED -> throw new BizException(ResponseCodeEnum.NOTE_NOT_LIKED);
+
+        }
+
+        // 从Zset移除笔记
+        String userNoteZsetKey = RedisKeyConstants.buildUserNoteLikeZsetKey(userId);
+        redisTemplate.opsForZSet().remove(userNoteZsetKey, noteId);
+
+        // TODO: 发送MQ消息落库
+        return Response.success();
+    }
+
     private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {
         if(Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
                 && !Objects.equals(userId, creatorId)) {

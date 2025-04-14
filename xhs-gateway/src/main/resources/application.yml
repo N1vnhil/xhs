@@ -28,6 +28,12 @@ spring:
             - Path=/relation/**
           filters:
             - StripPrefix=1
+        - id: user-oss
+          uri: lb://xhs-oss
+          predicates:
+            - Path=/oss/**
+          filters:
+            - StripPrefix=1
   data:
     redis:
       database: 1 # Redis 数据库索引（默认为 0）

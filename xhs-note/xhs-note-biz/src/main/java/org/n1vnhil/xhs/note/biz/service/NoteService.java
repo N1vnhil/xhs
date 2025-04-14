@@ -60,4 +60,6 @@ public interface NoteService {
      */
     Response<?> likeNote(LikeNoteReqVO likeNoteReqVO);
 
+    Response<?> cancelLikeNote(CancelLikeNoteReqVO cancelLikeNoteReqVO);
+
 }
