@@ -9,6 +9,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.ibatis.annotations.Param;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
@@ -452,10 +453,11 @@ public class NoteServiceImpl implements NoteService {
                 int count = noteLikeDOMapper.selectCountByUserIdAndNoteId(userId, noteId);
                 long expireTime = getRandomExpireTime();
                 if(count > 0) {
-                    asynBatchAddNoteLikeAndExpire(userId, expireTime, bloomFilterKey);
+                    threadPoolTaskExecutor.submit(() -> batchAddNoteLikeAndExpire(userId, expireTime, bloomFilterKey));
                     throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
                 }
 
+                batchAddNoteLikeAndExpire(userId, expireTime, bloomFilterKey);
                 script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_add_note_like_and_expire.lua")));
                 script.setResultType(Long.class);
                 redisTemplate.execute(script, Collections.singletonList(bloomFilterKey), noteId, expireTime);
@@ -509,12 +511,12 @@ public class NoteServiceImpl implements NoteService {
     @Override
     public Response<?> cancelLikeNote(CancelLikeNoteReqVO cancelLikeNoteReqVO) {
         Long noteId = cancelLikeNoteReqVO.getId();
+        Long userId = LoginUserContextHolder.getLoginUserId();
 
         // 校验笔记是否存在
         checkNoteExist(noteId);
 
         // 校验笔记是否被点赞
-        Long userId = LoginUserContextHolder.getLoginUserId();
         String bloomKey = RedisKeyConstants.buildNoteDetailKey(userId);
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
         script.setResultType(Long.class);
@@ -526,7 +528,7 @@ public class NoteServiceImpl implements NoteService {
             case NOT_EXIST -> {
                 threadPoolTaskExecutor.submit(() -> {
                     long expireTime = getRandomExpireTime();
-                    asynBatchAddNoteLikeAndExpire(userId, expireTime, bloomKey);
+                    batchAddNoteLikeAndExpire(userId, expireTime, bloomKey);
                 });
 
                 int count = noteLikeDOMapper.selectCountByUserIdAndNoteId(userId, noteId);
@@ -543,6 +545,27 @@ public class NoteServiceImpl implements NoteService {
         redisTemplate.opsForZSet().remove(userNoteZsetKey, noteId);
 
         // TODO: 发送MQ消息落库
+        LikeUnlikeNoteMqDTO likeUnlikeNoteMqDTO = LikeUnlikeNoteMqDTO.builder()
+                .userId(userId)
+                .noteId(noteId)
+                .type(LikeUnlikeNoteTypeEnum.UNLIKE.getCode())
+                .createTime(LocalDateTime.now())
+                .build();
+
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(likeUnlikeNoteMqDTO)).build();
+        String destination = MQConstants.TOPIC_LIKE_OR_UNLIKE + ":" + MQConstants.TAG_UNLIKE;
+        String hasKey = String.valueOf(userId);
+        rocketMQTemplate.asyncSendOrderly(destination, message, hasKey, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                log.info("==> 【笔记取消赞】MQ发送成功，sendResult: {}", sendResult);
+            }
+
+            @Override
+            public void onException(Throwable throwable) {
+                log.error("==> 【笔记取消赞】MQ发送失败", throwable);
+            }
+        });
         return Response.success();
     }
 
@@ -600,8 +623,8 @@ public class NoteServiceImpl implements NoteService {
      * @param expireTime
      * @param redisKey
      */
-    private void asynBatchAddNoteLikeAndExpire(Long userId, long expireTime, String redisKey) {
-        threadPoolTaskExecutor.execute(() -> {
+    private void batchAddNoteLikeAndExpire(Long userId, long expireTime, String redisKey) {
+        try {
             List<NoteLikeDO> noteLikeDOS = noteLikeDOMapper.selectByUserId(userId);
             if(CollUtil.isNotEmpty(noteLikeDOS)) {
                 DefaultRedisScript<Long> script = new DefaultRedisScript<>();
@@ -615,7 +638,9 @@ public class NoteServiceImpl implements NoteService {
                 luaArgs.add(expireTime);
                 redisTemplate.execute(script, Collections.singletonList(redisKey), luaArgs);
             }
-        });
+        } catch (Exception e) {
+            log.error("## 布隆过滤器初始化异常：", e);
+        }
     }
 
     private static int getRandomExpireTime() {

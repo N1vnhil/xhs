@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.n1vnhil.xhs.note.biz.domain.mapper.NoteLikeDOMapper">
+
+    <update id="updateStatusByNoteIdAndUserId" parameterType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteLikeDO">
+        update t_note_like set status=#{status}, create_time=#{createTime} where user_id=#{userId} and note_id=#{noteId}
+    </update>
+
+    <insert id="insertOrUpadte" parameterType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteLikeDO">
+        insert into t_note_like (user_id, note_id, create_time, status)
+        values (#{userId}, #{noteId}, #{createTime}, #{status})
+        on duplicate key update create_time = #{createTime}, status = #{status}
+    </insert>
+
+</mapper>
