@@ -7,6 +7,7 @@ import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhs.count.biz.constant.MQConstants;
+import org.n1vnhil.xhs.count.biz.constant.RedisKeyConstants;
 import org.n1vnhil.xhs.count.biz.enums.LikeUnlikeNoteTypeEnum;
 import org.n1vnhil.xhs.count.biz.model.dto.CountLikeUnlikeNoteMqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +72,14 @@ public class CountNoteLikeConsumer implements RocketMQListener<String> {
         }
 
         log.info("==========> 【笔记点赞数】聚合后计数数据：{}", countMap.toString());
+
+        // 更新 redis
+        countMap.forEach((k, v) -> {
+            String redisKey = RedisKeyConstants.buildCountUserKey(k);
+            if(redisTemplate.hasKey(redisKey)) {
+                redisTemplate.opsForHash().increment(redisKey, RedisKeyConstants.FIELD_LIKE_TOTAL, v);
+            }
+        });
     }
 
 }
