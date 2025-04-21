@@ -23,4 +23,9 @@ public interface MQConstants {
      * 笔记点赞计数 Topic
      */
     String TOPIC_COUNT_NOTE_LIKE = "CountNoteLikeTopic";
+
+    /**
+     * 点赞计数入库 Topic
+     */
+    String TOPIC_COUNT_NOTE_LIKE_2_DB = "CountNoteLike2DBTopic";
 }
