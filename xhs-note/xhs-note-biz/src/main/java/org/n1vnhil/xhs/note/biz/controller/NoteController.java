@@ -68,4 +68,10 @@ public class NoteController {
         return noteService.cancelLikeNote(cancelLikeNoteReqVO);
     }
 
+    @ApiOperationLog(description = "笔记收藏")
+    @PostMapping("/collect")
+    public Response<?> collect(@Validated @RequestBody CollectNoteReqVO collectNoteReqVO) {
+        return noteService.collectNote(collectNoteReqVO);
+    }
+
 }

@@ -3,6 +3,7 @@ package org.n1vnhil.xhs.note.biz.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
+import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.alibaba.nacos.shaded.io.grpc.internal.JsonUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -24,6 +25,7 @@ import org.n1vnhil.framework.context.filter.HeadUserId2ContextFilter;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
 import org.n1vnhil.xhs.note.biz.constant.MQConstants;
 import org.n1vnhil.xhs.note.biz.constant.RedisKeyConstants;
+import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteCollectionDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteLikeDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.TopicDO;
@@ -704,8 +706,13 @@ public class NoteServiceImpl implements NoteService {
                 int expireSeconds = getRandomExpireTime();
                 if(count > 1) {
                     // TODO: 初始化布隆过滤器
+                    threadPoolTaskExecutor.submit(() -> batchAddNoteCollect2BloomAndExpire(userId, expireSeconds, bloomUserNoteCollectListKey));
                     throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
                 }
+                batchAddNoteCollect2BloomAndExpire(userId, expireSeconds, bloomUserNoteCollectListKey);
+
+                script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_add_note_collect_and_expire.lua")));
+                redisTemplate.execute(script, Collections.singletonList(bloomUserNoteCollectListKey), noteId, expireSeconds);
             }
 
             // 笔记已收藏，检查是否误判
@@ -717,5 +724,23 @@ public class NoteServiceImpl implements NoteService {
         // 3. 更新用户 Zset 收藏列表
         // 4. 发送 mq 落库
         return Response.success();
+    }
+
+    private void batchAddNoteCollect2BloomAndExpire(Long userId, long expireSeconds, String bloomUserNoteCollectListKey) {
+        try {
+            List<NoteCollectionDO> noteCollectionDOS = noteCollectionDOMapper.selectByUserId(userId);
+            if(CollUtil.isNotEmpty(noteCollectionDOS)) {
+                DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+                script.setResultType(Long.class);
+                script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_batch_add_note_collect_and_expire.lua")));
+
+                List<Object> args = Lists.newArrayList();
+                noteCollectionDOS.forEach(noteCollectionDO -> args.add(noteCollectionDO.getId()));
+                args.add(expireSeconds);
+                redisTemplate.execute(script, Collections.singletonList(bloomUserNoteCollectListKey), args);
+            }
+        } catch (Exception e) {
+            log.error("## 异步初始化【笔记收藏】布隆过滤器异常: ", e);
+        }
     }
 }
