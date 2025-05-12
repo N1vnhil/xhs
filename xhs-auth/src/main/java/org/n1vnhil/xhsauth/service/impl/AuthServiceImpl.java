@@ -7,14 +7,10 @@ import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
-import org.n1vnhil.framework.common.enums.DeletedEnum;
-import org.n1vnhil.framework.common.enums.StatusEnum;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
-import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhs.user.dto.resp.FindUserByPhoneRspDTO;
 import org.n1vnhil.xhsauth.constant.RedisKeyConstants;
-import org.n1vnhil.xhsauth.constant.RoleConstants;
 import org.n1vnhil.xhsauth.enums.ResponseCodeEnum;
 import org.n1vnhil.xhsauth.filter.LoginUserContextFilter;
 import org.n1vnhil.xhsauth.model.vo.user.UpdatePasswordReqVO;
@@ -26,11 +22,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.n1vnhil.xhsauth.enums.LoginTypeEnum;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 @Service

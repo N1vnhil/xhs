@@ -27,6 +27,7 @@ import org.n1vnhil.xhs.note.biz.constant.RedisKeyConstants;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.NoteLikeDO;
 import org.n1vnhil.xhs.note.biz.domain.dataobject.TopicDO;
+import org.n1vnhil.xhs.note.biz.domain.mapper.NoteCollectionDOMapper;
 import org.n1vnhil.xhs.note.biz.domain.mapper.NoteDOMapper;
 import org.n1vnhil.xhs.note.biz.domain.mapper.NoteLikeDOMapper;
 import org.n1vnhil.xhs.note.biz.domain.mapper.TopicDOMapper;
@@ -84,6 +85,9 @@ public class NoteServiceImpl implements NoteService {
 
     @Resource
     private RocketMQTemplate rocketMQTemplate;
+
+    @Autowired
+    private NoteCollectionDOMapper noteCollectionDOMapper;
 
     private static final Cache<Long, String> LOCAL_CACHE = Caffeine.newBuilder()
             .initialCapacity(10000) // 设置初始容量为 10000 个条目
@@ -675,5 +679,43 @@ public class NoteServiceImpl implements NoteService {
                 }
             }
         });
+    }
+
+    @Override
+    public Response<?> collectNote(CollectNoteReqVO collectNoteReqVO) {
+        Long noteId = collectNoteReqVO.getId();
+
+        // 1. 笔记判空
+        checkNoteExist(noteId);
+
+        // 2. 判断是否已收藏
+        // 布隆过滤器判空
+        Long userId = LoginUserContextHolder.getLoginUserId();
+        String bloomUserNoteCollectListKey = RedisKeyConstants.buildBloomUserNoteCollectListKey(userId);
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_collect_check.lua")));
+        script.setResultType(Long.class);
+        Long result = redisTemplate.execute(script, Collections.singletonList(bloomUserNoteCollectListKey), noteId);
+        NoteCollectLuaResultEnum noteCollectLuaResultEnum = NoteCollectLuaResultEnum.valueOf(result);
+        switch (noteCollectLuaResultEnum) {
+            // 布隆过滤器不存在，新增布隆过滤器
+            case NOTE_NOT_EXIST -> {
+                int count = noteCollectionDOMapper.selectCountByNoteIdAndUserId(noteId, userId);
+                int expireSeconds = getRandomExpireTime();
+                if(count > 1) {
+                    // TODO: 初始化布隆过滤器
+                    throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
+                }
+            }
+
+            // 笔记已收藏，检查是否误判
+            case NOTE_COLLECTED -> {
+
+            }
+        }
+
+        // 3. 更新用户 Zset 收藏列表
+        // 4. 发送 mq 落库
+        return Response.success();
     }
 }

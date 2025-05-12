@@ -20,4 +20,10 @@ public class RedisKeyConstants {
         return USER_NOTE_LIKE_ZSET_KEY + userId;
     }
 
+    public static final String BLOOM_USER_NOTE_COLLECT_LIST_KEY = "bloom:note:collect:";
+
+    public static String buildBloomUserNoteCollectListKey(Long userId) {
+        return BLOOM_USER_NOTE_COLLECT_LIST_KEY + userId;
+    }
+
 }
