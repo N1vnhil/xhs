@@ -730,6 +730,13 @@ public class NoteServiceImpl implements NoteService {
         }
 
         // 3. 更新用户 Zset 收藏列表
+        LocalDateTime now = LocalDateTime.now();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/note_collect_check_and_update_zset.lua")));
+        result = redisTemplate.execute(script, Collections.singletonList(userNoteCollectZsetKey), noteId, DateUtils.localDateTime2Timestamp(now));
+        if(Objects.equals(result, NoteCollectLuaResultEnum.NOTE_NOT_EXIST.getCode())) {
+            // TODO
+        }
+
         // 4. 发送 mq 落库
         return Response.success();
     }
