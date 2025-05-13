@@ -1,5 +1,6 @@
 package org.n1vnhil.xhs.count.biz.consumer;
 
+import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.github.phantomthief.collection.BufferTrigger;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhs.count.biz.constant.MQConstants;
 import org.n1vnhil.xhs.count.biz.constant.RedisKeyConstants;
 import org.n1vnhil.xhs.count.biz.enums.CollectUncollectNoteTypeEnum;
+import org.n1vnhil.xhs.count.biz.model.dto.AggregationCountCollectUncollectNoteMqDTO;
 import org.n1vnhil.xhs.count.biz.model.dto.CountCollectUncollectMqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -58,11 +60,17 @@ public class CountNoteCollectConsumer implements RocketMQListener<String> {
         List<CountCollectUncollectMqDTO> collectUncollectMqDTOS = bodys.stream()
                 .map(body -> JsonUtils.parseObject(body, CountCollectUncollectMqDTO.class)).toList();
         Map<Long, List<CountCollectUncollectMqDTO>> groupMap = collectUncollectMqDTOS.stream().collect(Collectors.groupingBy(CountCollectUncollectMqDTO::getNoteId));
-        Map<Long, Integer> countMap = Maps.newHashMap();
+        List<AggregationCountCollectUncollectNoteMqDTO> countList = Lists.newArrayList();
+
+        if(groupMap.isEmpty()) return;
+
         for(Map.Entry<Long, List<CountCollectUncollectMqDTO>> entry: groupMap.entrySet()) {
             List<CountCollectUncollectMqDTO> list = entry.getValue();
             int count = 0;
+            Long noteId = entry.getKey();
+            Long userId = null;
             for(CountCollectUncollectMqDTO countCollectUncollectMqDTO : list) {
+                userId = countCollectUncollectMqDTO.getUserId();
                 Integer type = countCollectUncollectMqDTO.getType();
                 CollectUncollectNoteTypeEnum collectUncollectNoteTypeEnum = CollectUncollectNoteTypeEnum.valueOf(type);
                 if(Objects.isNull(collectUncollectNoteTypeEnum)) continue;
@@ -72,20 +80,31 @@ public class CountNoteCollectConsumer implements RocketMQListener<String> {
                     count--;
                 }
             }
-            countMap.put(entry.getKey(), count);
+            countList.add(AggregationCountCollectUncollectNoteMqDTO.builder()
+                            .noteId(noteId)
+                            .creatorId(userId)
+                            .count(count)
+                    .build());
         }
 
-        log.info("## 【笔记收藏数】聚合后计数数据：{}", JsonUtils.toJsonString(countMap));
+        log.info("## 【笔记收藏数】聚合后计数数据：{}", JsonUtils.toJsonString(countList));
 
-        countMap.forEach((k, v) -> {
-            String redisKey = RedisKeyConstants.buildCountNoteKey(k);
-            boolean existed = redisTemplate.hasKey(redisKey);
-            if(existed) {
-                redisTemplate.opsForHash().increment(redisKey, RedisKeyConstants.FIELD_COLLECT_TOTAL, v);
-            }
+        countList.forEach(o -> {
+            Long userId = o.getCreatorId();
+            Long noteId = o.getNoteId();
+            Integer count = o.getCount();
+
+            String redisUserKey = RedisKeyConstants.buildCountUserKey(userId);
+            String redisNoteKey = RedisKeyConstants.buildCountNoteKey(noteId);
+
+            boolean noteExisted = redisTemplate.hasKey(redisNoteKey);
+            if(noteExisted) redisTemplate.opsForHash().increment(redisNoteKey, RedisKeyConstants.FIELD_COLLECT_TOTAL, count);
+
+            boolean userExisted = redisTemplate.hasKey(redisUserKey);
+            if(userExisted) redisTemplate.opsForHash().increment(redisUserKey, RedisKeyConstants.FIELD_COLLECT_TOTAL, count);
         });
 
-        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(countMap)).build();
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(countList)).build();
         rocketMQTemplate.asyncSend(MQConstants.TOPIC_COUNT_NOTE_COLLECT_2_DB, message, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
