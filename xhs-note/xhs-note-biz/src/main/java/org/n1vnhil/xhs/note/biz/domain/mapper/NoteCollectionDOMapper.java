@@ -17,4 +17,6 @@ public interface NoteCollectionDOMapper {
 
     int insertOrUpdate(NoteCollectionDO noteCollectionDO);
 
+    int update2UncollectByUserIdAndNoteId(NoteCollectionDO noteCollectionDO);
+
 }

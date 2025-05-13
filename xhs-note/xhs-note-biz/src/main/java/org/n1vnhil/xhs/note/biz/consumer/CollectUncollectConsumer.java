@@ -65,6 +65,14 @@ public class CollectUncollectConsumer implements RocketMQListener<Message> {
      * @param bodyJsonStr
      */
     private void handleUncollectMessage(String bodyJsonStr) {
-
+        CollectUncollectNoteMqDTO collectUncollectNoteMqDTO = JsonUtils.parseObject(bodyJsonStr, CollectUncollectNoteMqDTO.class);
+        if(Objects.isNull(collectUncollectNoteMqDTO)) return;
+        NoteCollectionDO noteCollectionDO = NoteCollectionDO.builder()
+                .noteId(collectUncollectNoteMqDTO.getNoteId())
+                .userId(collectUncollectNoteMqDTO.getUserId())
+                .createTime(collectUncollectNoteMqDTO.getCreateTime())
+                .status(collectUncollectNoteMqDTO.getType())
+                .build();
+        int count = noteCollectionDOMapper.insertOrUpdate(noteCollectionDO);
     }
 }

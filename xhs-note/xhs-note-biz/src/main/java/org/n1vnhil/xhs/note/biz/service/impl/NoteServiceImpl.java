@@ -5,6 +5,7 @@ import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.alibaba.nacos.shaded.io.grpc.internal.JsonUtil;
+import com.fasterxml.jackson.core.JsonToken;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.annotation.Resource;
@@ -813,6 +814,26 @@ public class NoteServiceImpl implements NoteService {
         redisTemplate.opsForZSet().remove(noteCollectZsetKey, noteId);
 
         // 4. 发送 MQ 数据落库
+        CollectUncollectNoteMqDTO collectUncollectNoteMqDTO = CollectUncollectNoteMqDTO.builder()
+                .noteId(noteId)
+                .userId(userId)
+                .type(CollectUncollectNoteTypeEnum.UNCOLLECT.getCode())
+                .createTime(LocalDateTime.now())
+                .build();
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(collectUncollectNoteMqDTO)).build();
+        String destination = MQConstants.TOPIC_COLLECT_OR_UNCOLLECT + ":" + MQConstants.TAG_UNCOLLECT;
+        String hashKey = String.valueOf(userId);
+        rocketMQTemplate.asyncSendOrderly(destination, message, hashKey, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                log.info("==> 【笔记取消收藏】MQ 发送成功，sendResult: {}", sendResult);
+            }
+
+            @Override
+            public void onException(Throwable throwable) {
+                log.error("==> 【笔记取消收藏】MQ 发送异常，", throwable);
+            }
+        });
         return Response.success();
     }
 

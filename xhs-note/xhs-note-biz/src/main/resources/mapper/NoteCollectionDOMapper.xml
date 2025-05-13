@@ -8,6 +8,10 @@
         VALUES (#{userId}, #{noteId}, #{createTime}, #{status})
         on duplicate key update create_time=#{createTime}, status=#{status}
     </insert>
+    <update id="update2UncollectByUserIdAndNoteId" parameterType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteCollectionDO">
+        update t_note_collection set status=#{status}, create_time=#{createTime}
+        where user_id=#{userId} and note_id=#{noteId} and status=1
+    </update>
     <select id="selectCountByNoteIdAndUserId" resultType="java.lang.Integer" parameterType="map">
         select count(1) from t_note_collection where note_id=#{noteId} and user_id=#{userId} and status=1 limit 1
     </select>
