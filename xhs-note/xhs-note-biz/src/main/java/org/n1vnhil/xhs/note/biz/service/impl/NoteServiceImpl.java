@@ -31,6 +31,7 @@ import org.n1vnhil.xhs.note.biz.domain.mapper.TopicDOMapper;
 import org.n1vnhil.xhs.note.biz.enums.*;
 import org.n1vnhil.xhs.note.biz.model.dto.CollectUncollectNoteMqDTO;
 import org.n1vnhil.xhs.note.biz.model.dto.LikeUnlikeNoteMqDTO;
+import org.n1vnhil.xhs.note.biz.model.dto.NoteOperateMqDTO;
 import org.n1vnhil.xhs.note.biz.model.vo.*;
 import org.n1vnhil.xhs.note.biz.rpc.DistributedIdGeneratorRpcService;
 import org.n1vnhil.xhs.note.biz.rpc.KvRpcService;
@@ -167,6 +168,26 @@ public class NoteServiceImpl implements NoteService {
                 kvRpcService.deleteNoteContent(contentId);
             }
         }
+
+        NoteOperateMqDTO noteOperateMqDTO = NoteOperateMqDTO.builder()
+                .noteId(Long.valueOf(snowflakeId))
+                .creatorId(creatorId)
+                .type(NoteOperateEnum.PUBLISH.getCode())
+                .build();
+
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(noteOperateMqDTO)).build();
+        String destination = MQConstants.TOPIC_NOTE_OPERATE + ":" + MQConstants.TAG_COLLECT;
+        rocketMQTemplate.asyncSend(destination, message, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                log.info("==> 【笔记发布】MQ 发送成功，SendResult: {}", sendResult);
+            }
+
+            @Override
+            public void onException(Throwable throwable) {
+                log.error("==> 【笔记发布】MQ 发送异常，", throwable);
+            }
+        });
 
         return Response.success();
     }
@@ -373,6 +394,26 @@ public class NoteServiceImpl implements NoteService {
         // MQ广播删除本地缓存
         rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
         log.info("==========> MQ: 广播删除缓存，noteId: {}", noteId);
+
+        NoteOperateMqDTO noteOperateMqDTO = NoteOperateMqDTO.builder()
+                .noteId(noteId)
+                .creatorId(LoginUserContextHolder.getLoginUserId())
+                .type(NoteOperateEnum.DELETE.getCode())
+                .build();
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(noteOperateMqDTO)).build();
+        String destination = MQConstants.TOPIC_NOTE_OPERATE + ":" + MQConstants.TAG_NOTE_DELETE;
+        rocketMQTemplate.asyncSend(destination, message, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                log.info("==> 【笔记删除】MQ 发送成功，SendResult: {}", sendResult);
+            }
+
+            @Override
+            public void onException(Throwable throwable) {
+                log.error("==> 【笔记删除】MQ 发送失败，", throwable);
+            }
+        });
+
         return Response.success();
     }
 

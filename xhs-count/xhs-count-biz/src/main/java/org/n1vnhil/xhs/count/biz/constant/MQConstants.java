@@ -41,4 +41,19 @@ public interface MQConstants {
      * Topic: 收藏计数落库
      */
     String TOPIC_COUNT_NOTE_COLLECT_2_DB = "CountNoteCollect2DBTopic";
+
+    /**
+     * Topic: 笔记操作
+     */
+    String TOPIC_NOTE_OPERATE = "NoteOperateTopic";
+
+    /**
+     * Tag: 笔记发布
+     */
+    String TAG_NOTE_PUBLISH = "publishNote";
+
+    /**
+     * Tag: 笔记删除
+     */
+    String TAG_NOTE_DELETE = "deleteNote";
 }

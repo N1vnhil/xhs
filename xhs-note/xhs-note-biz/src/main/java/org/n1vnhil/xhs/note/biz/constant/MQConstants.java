@@ -48,4 +48,18 @@ public interface MQConstants {
      */
     String TAG_UNCOLLECT = "Uncollect";
 
+    /**
+     * Topic: 笔记操作
+     */
+    String TOPIC_NOTE_OPERATE = "NoteOperateTopic";
+
+    /**
+     * Tag: 发布笔记
+     */
+    String TAG_NOTE_PUBLISH = "publishNote";
+
+    /**
+     * Tag: 删除笔记
+     */
+    String TAG_NOTE_DELETE = "deleteNote";
 }

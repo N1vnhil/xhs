@@ -46,5 +46,9 @@ public class RedisKeyConstants {
      */
     public static final String FIELD_COLLECT_TOTAL = "collectTotal";
 
+    /**
+     * Hash Field: 笔记发布总数
+     */
+    public static final String FIELD_NOTE_TOTAL = "noteTotal";
 
 }
