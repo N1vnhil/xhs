@@ -28,6 +28,7 @@
         <module>xhs-note</module>
         <module>xhs-user-relation</module>
         <module>xhs-count</module>
+        <module>xhs-data-align</module>
     </modules>
 
     <properties>
