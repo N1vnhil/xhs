@@ -3,7 +3,11 @@
   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.n1vnhil.xhs.note.biz.domain.mapper.NoteCollectionDOMapper">
-
+    <insert id="insertOrUpdate" parameterType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteCollectionDO">
+        insert into t_note_collection (user_id, note_id, create_time, status)
+        VALUES (#{userId}, #{noteId}, #{createTime}, #{status})
+        on duplicate key update create_time=#{createTime}, status=#{status}
+    </insert>
     <select id="selectCountByNoteIdAndUserId" resultType="java.lang.Integer" parameterType="map">
         select count(1) from t_note_collection where note_id=#{noteId} and user_id=#{userId} and status=1 limit 1
     </select>
