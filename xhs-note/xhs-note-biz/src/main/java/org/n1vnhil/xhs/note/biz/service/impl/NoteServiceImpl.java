@@ -34,6 +34,7 @@ import org.n1vnhil.xhs.note.biz.domain.mapper.NoteDOMapper;
 import org.n1vnhil.xhs.note.biz.domain.mapper.NoteLikeDOMapper;
 import org.n1vnhil.xhs.note.biz.domain.mapper.TopicDOMapper;
 import org.n1vnhil.xhs.note.biz.enums.*;
+import org.n1vnhil.xhs.note.biz.model.dto.CollectUncollectNoteMqDTO;
 import org.n1vnhil.xhs.note.biz.model.dto.LikeUnlikeNoteMqDTO;
 import org.n1vnhil.xhs.note.biz.model.vo.*;
 import org.n1vnhil.xhs.note.biz.rpc.DistributedIdGeneratorRpcService;
@@ -752,6 +753,28 @@ public class NoteServiceImpl implements NoteService {
         }
 
         // 4. 发送 mq 落库
+        CollectUncollectNoteMqDTO collectUncollectNoteMqDTO = CollectUncollectNoteMqDTO.builder()
+                .noteId(noteId)
+                .userId(userId)
+                .type(CollectUncollectNoteTypeEnum.COLLECT.getCode())
+                .createTime(now)
+                .build();
+
+        Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(collectUncollectNoteMqDTO)).build();
+        String destination = MQConstants.TOPIC_COLLECT_OR_UNCOLLECT + ":" + MQConstants.TAG_COLLECT;
+        String hashKey = String.valueOf(userId);
+        rocketMQTemplate.asyncSendOrderly(destination, message, hashKey, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                log.info("==> 【笔记收藏】MQ发送成功，SendResult: {}", sendResult);
+            }
+
+            @Override
+            public void onException(Throwable throwable) {
+                log.error("==> 【笔记收藏】MQ发送异常：", throwable);
+            }
+        });
+
         return Response.success();
     }
 
