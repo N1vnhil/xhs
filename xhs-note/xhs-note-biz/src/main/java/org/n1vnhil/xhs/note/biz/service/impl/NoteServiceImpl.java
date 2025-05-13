@@ -2,6 +2,7 @@ package org.n1vnhil.xhs.note.biz.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
+import com.alibaba.druid.sql.visitor.functions.Lpad;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -422,7 +423,7 @@ public class NoteServiceImpl implements NoteService {
         // 1. 笔记判空
         Long noteId = likeNoteReqVO.getId();
         Long userId = LoginUserContextHolder.getLoginUserId();
-        checkNoteExist(noteId);
+        Long creatorId = checkNoteExist(noteId);
 
         // 2. 判断是否点赞
         String bloomFilterKey = RedisKeyConstants.buildBloomUserNoteLikeListKey(noteId);
@@ -484,12 +485,13 @@ public class NoteServiceImpl implements NoteService {
            }
         }
 
-        // TODO: 4. 发送mq
+        // 4. 发送mq
         LikeUnlikeNoteMqDTO likeUnlikeNoteMqDTO = LikeUnlikeNoteMqDTO.builder()
                 .userId(userId)
                 .noteId(noteId)
                 .type(LikeUnlikeNoteTypeEnum.LIKE.getCode())
                 .createTime(now)
+                .noteCreatorId(creatorId)
                 .build();
 
         Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(likeUnlikeNoteMqDTO)).build();
@@ -515,7 +517,7 @@ public class NoteServiceImpl implements NoteService {
         Long userId = LoginUserContextHolder.getLoginUserId();
 
         // 校验笔记是否存在
-        checkNoteExist(noteId);
+        Long creatorId = checkNoteExist(noteId);
 
         // 校验笔记是否被点赞
         String bloomKey = RedisKeyConstants.buildNoteDetailKey(userId);
@@ -545,12 +547,13 @@ public class NoteServiceImpl implements NoteService {
         String userNoteZsetKey = RedisKeyConstants.buildUserNoteLikeZsetKey(userId);
         redisTemplate.opsForZSet().remove(userNoteZsetKey, noteId);
 
-        // TODO: 发送MQ消息落库
+        // 发送MQ消息落库
         LikeUnlikeNoteMqDTO likeUnlikeNoteMqDTO = LikeUnlikeNoteMqDTO.builder()
                 .userId(userId)
                 .noteId(noteId)
                 .type(LikeUnlikeNoteTypeEnum.UNLIKE.getCode())
                 .createTime(LocalDateTime.now())
+                .noteCreatorId(creatorId)
                 .build();
 
         Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(likeUnlikeNoteMqDTO)).build();
@@ -683,7 +686,7 @@ public class NoteServiceImpl implements NoteService {
         Long noteId = collectNoteReqVO.getId();
 
         // 1. 笔记判空
-        checkNoteExist(noteId);
+        Long creatorId = checkNoteExist(noteId);
 
         // 2. 判断是否已收藏
         // 布隆过滤器判空
@@ -752,6 +755,7 @@ public class NoteServiceImpl implements NoteService {
                 .userId(userId)
                 .type(CollectUncollectNoteTypeEnum.COLLECT.getCode())
                 .createTime(now)
+                .noteCreatorId(creatorId)
                 .build();
 
         Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(collectUncollectNoteMqDTO)).build();
@@ -781,7 +785,7 @@ public class NoteServiceImpl implements NoteService {
     public Response<?> uncollectNote(UncollectNoteReqVO uncollectNoteReqVO) {
         Long noteId = uncollectNoteReqVO.getId();
         // 1. 笔记判空
-        checkNoteExist(noteId);
+        Long creatorId = checkNoteExist(noteId);
 
         // 2. 校验笔记是否收藏
         Long userId = LoginUserContextHolder.getLoginUserId();
@@ -812,6 +816,7 @@ public class NoteServiceImpl implements NoteService {
                 .userId(userId)
                 .type(CollectUncollectNoteTypeEnum.UNCOLLECT.getCode())
                 .createTime(LocalDateTime.now())
+                .noteCreatorId(creatorId)
                 .build();
         Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(collectUncollectNoteMqDTO)).build();
         String destination = MQConstants.TOPIC_COLLECT_OR_UNCOLLECT + ":" + MQConstants.TAG_UNCOLLECT;

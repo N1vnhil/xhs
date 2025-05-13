@@ -23,4 +23,7 @@ public class CountLikeUnlikeNoteMqDTO {
     private Integer type;
 
     private LocalDateTime createTime;
+
+    private Long noteCreatorId;
+
 }
