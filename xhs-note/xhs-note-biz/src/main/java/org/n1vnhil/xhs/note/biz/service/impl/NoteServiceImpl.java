@@ -790,9 +790,30 @@ public class NoteServiceImpl implements NoteService {
         checkNoteExist(noteId);
 
         // 2. 校验笔记是否收藏
+        Long userId = LoginUserContextHolder.getLoginUserId();
+        String bloomNoteUncollectKey = RedisKeyConstants.buildBloomUserNoteCollectListKey(userId);
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_uncollect_check.lua")));
+        script.setResultType(Long.class);
+        Long result = redisTemplate.execute(script, Collections.singletonList(bloomNoteUncollectKey), noteId);
+        NoteUncollectLuaResultEnum noteUncollectLuaResultEnum = NoteUncollectLuaResultEnum.valueOf(result);
+        switch (noteUncollectLuaResultEnum) {
+            case NOT_EXIST -> {
+                threadPoolTaskExecutor.execute(() -> batchAddNoteCollect2BloomAndExpire(userId, getRandomExpireTime(), bloomNoteUncollectKey));
+                int count = noteCollectionDOMapper.selectCountByNoteIdAndUserId(userId, noteId);
+                if(count == 0) throw new BizException(ResponseCodeEnum.NOTE_NOT_COLLECTED);
+            }
+
+            case NOTE_NOT_COLLECTED -> throw new BizException(ResponseCodeEnum.NOTE_NOT_COLLECTED);
+
+        }
+
         // 3. 删除 Zset 中已收藏的笔记 id
+        String noteCollectZsetKey = RedisKeyConstants.buildUserNoteCollectZestKey(userId);
+        redisTemplate.opsForZSet().remove(noteCollectZsetKey, noteId);
+
         // 4. 发送 MQ 数据落库
-        return null;
+        return Response.success();
     }
 
     private void batchAddNoteCollect2BloomAndExpire(Long userId, long expireSeconds, String bloomUserNoteCollectListKey) {
