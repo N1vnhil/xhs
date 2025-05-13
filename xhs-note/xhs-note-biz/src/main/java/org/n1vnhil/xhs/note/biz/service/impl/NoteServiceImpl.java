@@ -778,6 +778,23 @@ public class NoteServiceImpl implements NoteService {
         return Response.success();
     }
 
+    /**
+     * 笔记取消收藏
+     * @param uncollectNoteReqVO
+     * @return
+     */
+    @Override
+    public Response<?> uncollectNote(UncollectNoteReqVO uncollectNoteReqVO) {
+        Long noteId = uncollectNoteReqVO.getId();
+        // 1. 笔记判空
+        checkNoteExist(noteId);
+
+        // 2. 校验笔记是否收藏
+        // 3. 删除 Zset 中已收藏的笔记 id
+        // 4. 发送 MQ 数据落库
+        return null;
+    }
+
     private void batchAddNoteCollect2BloomAndExpire(Long userId, long expireSeconds, String bloomUserNoteCollectListKey) {
         try {
             List<NoteCollectionDO> noteCollectionDOS = noteCollectionDOMapper.selectByUserId(userId);
