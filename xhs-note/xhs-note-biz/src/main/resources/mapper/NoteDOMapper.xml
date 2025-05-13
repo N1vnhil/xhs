@@ -21,6 +21,9 @@
     <select id="selectNoteById" resultType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO">
         select * from t_note where id=#{id} and status=1;
     </select>
+    <select id="selectCreatorIdByNoteId" resultType="java.lang.Long">
+        select creator_id from t_note where id = #{noteId} and status = 1
+    </select>
 
     <update id="updateTop" parameterType="org.n1vnhil.xhs.note.biz.domain.dataobject.NoteDO">
         update t_note

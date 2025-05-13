@@ -4,25 +4,18 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
-import com.alibaba.nacos.shaded.io.grpc.internal.JsonUtil;
-import com.fasterxml.jackson.core.JsonToken;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.ibatis.annotations.Param;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.checkerframework.checker.units.qual.C;
-import org.n1vnhil.framework.common.enums.DeletedEnum;
-import org.n1vnhil.framework.common.enums.StatusEnum;
 import org.n1vnhil.framework.common.exception.BizException;
 import org.n1vnhil.framework.common.response.Response;
 import org.n1vnhil.framework.common.util.DateUtils;
 import org.n1vnhil.framework.common.util.JsonUtils;
-import org.n1vnhil.framework.context.filter.HeadUserId2ContextFilter;
 import org.n1vnhil.framework.context.holder.LoginUserContextHolder;
 import org.n1vnhil.xhs.note.biz.constant.MQConstants;
 import org.n1vnhil.xhs.note.biz.constant.RedisKeyConstants;
@@ -606,23 +599,23 @@ public class NoteServiceImpl implements NoteService {
         }
     }
 
-    private void checkNoteExist(Long noteId) {
+    private Long checkNoteExist(Long noteId) {
         String findNoteDetailRspVOStrLocalCache = LOCAL_CACHE.getIfPresent(noteId);
         FindNoteDetailRspVO findNoteDetailRspVO = JsonUtils.parseObject(findNoteDetailRspVOStrLocalCache, FindNoteDetailRspVO.class);
         if(Objects.isNull(findNoteDetailRspVO)) {
-            String noteDetailJson = (String) redisTemplate.opsForValue().get(RedisKeyConstants.buildNoteDetailKey(noteId));
-            findNoteDetailRspVO = JsonUtils.parseObject(noteDetailJson, FindNoteDetailRspVO.class);
-
-            if(Objects.isNull(findNoteDetailRspVO)) {
-                NoteDO note = noteDOMapper.selectNoteById(noteId);
-                if(Objects.isNull(note)) throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+            Long creatorId = noteDOMapper.selectCreatorIdByNoteId(noteId);
+            if(Objects.isNull(creatorId)) {
+                throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
             }
 
             threadPoolTaskExecutor.execute(() -> {
                 FindNoteDetailReqVO findNoteDetailReqVO = FindNoteDetailReqVO.builder().id(noteId).build();
                 findNoteDetail(findNoteDetailReqVO);
             });
+            return creatorId;
         }
+
+        return findNoteDetailRspVO.getCreatorId();
     }
 
     /**
