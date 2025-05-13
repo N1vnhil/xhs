@@ -1,5 +1,6 @@
 package org.n1vnhil.framework.common.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,6 +9,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.Type;
+import java.util.List;
 import java.util.Map;
 
 public class JsonUtils {
@@ -51,7 +54,7 @@ public class JsonUtils {
     }
 
     /**
-     * JSON 字符串转化为 Map
+     * JSON 字符串解析为 Map
      * @param jsonStr
      * @param keyClazz
      * @param valueClazz
@@ -63,5 +66,22 @@ public class JsonUtils {
         TypeReference<Map<K, V>> typeRef = new TypeReference<Map<K, V>>() {
         };
         return OBJECT_MAPPER.readValue(jsonStr, OBJECT_MAPPER.getTypeFactory().constructMapType(Map.class, keyClazz, valueClazz));
+    }
+
+    /**
+     * JSON 字符串解析为 List
+     * @param jsonStr
+     * @param clazz
+     * @return
+     * @param <T>
+     * @throws JsonProcessingException
+     */
+    public static <T> List<T> parseList(String jsonStr, Class<T> clazz) throws JsonProcessingException {
+        return OBJECT_MAPPER.readValue(jsonStr, new TypeReference<List<T>>() {
+            @Override
+            public Type getType() {
+                return OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, clazz);
+            }
+        });
     }
 }

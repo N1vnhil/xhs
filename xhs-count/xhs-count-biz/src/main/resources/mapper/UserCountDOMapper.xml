@@ -15,5 +15,10 @@
         values (#{userId}, #{count})
         on duplicate key update following_total = following_total + (#{count})
     </insert>
+    <insert id="insertOrUpdateLikeTotalByUserId">
+        insert into t_user_count (user_id, note_total)
+        values (#{userId}, #{count})
+        on duplicate key update note_total = note_total + (#{count})
+    </insert>
 
 </mapper>
