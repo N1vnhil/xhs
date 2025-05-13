@@ -87,5 +87,18 @@
             <groupId>com.xuxueli</groupId>
             <artifactId>xxl-job-core</artifactId>
         </dependency>
+
+        <!-- Jackson 组件 -->
+        <dependency>
+            <groupId>org.n1vnhil</groupId>
+            <artifactId>xhs-spring-boot-starter-jackson</artifactId>
+        </dependency>
+
+        <!-- Rocket MQ -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-spring-boot-starter</artifactId>
+        </dependency>
+
     </dependencies>
 </project>
