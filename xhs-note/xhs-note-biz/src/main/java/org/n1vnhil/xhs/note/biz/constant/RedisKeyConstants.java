@@ -28,7 +28,7 @@ public class RedisKeyConstants {
 
     public static final String USER_NOTE_COLLECT_ZSET_KEY = "user:note:collects";
 
-    public static final String buildUserNoteCollectZestKey(String userId) {
+    public static final String buildUserNoteCollectZestKey(Long userId) {
         return USER_NOTE_COLLECT_ZSET_KEY + userId;
     }
 

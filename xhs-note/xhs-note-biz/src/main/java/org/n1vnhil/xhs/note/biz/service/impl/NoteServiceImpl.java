@@ -734,7 +734,21 @@ public class NoteServiceImpl implements NoteService {
         script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/note_collect_check_and_update_zset.lua")));
         result = redisTemplate.execute(script, Collections.singletonList(userNoteCollectZsetKey), noteId, DateUtils.localDateTime2Timestamp(now));
         if(Objects.equals(result, NoteCollectLuaResultEnum.NOTE_NOT_EXIST.getCode())) {
-            // TODO
+            List<NoteCollectionDO> noteCollectionDOS = noteCollectionDOMapper.selectCollectedByUserIdAndLimit(userId, 300L);
+            long expireSecond = getRandomExpireTime();
+            DefaultRedisScript<Long> script2 = new DefaultRedisScript<>();
+            script2.setResultType(Long.class);
+            script2.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/batch_add_note_collect_zset_and_expire.lua")));
+            if(CollUtil.isNotEmpty(noteCollectionDOS)) {
+                Object[] args = buildNoteCollectZsetArgs(noteCollectionDOS, expireSecond);
+                redisTemplate.execute(script, Collections.singletonList(userNoteCollectZsetKey), args);
+            } else {
+                List<Object> args = Lists.newArrayList();
+                args.add(DateUtils.localDateTime2Timestamp(now));
+                args.add(noteId);
+                args.add(expireSecond);
+                redisTemplate.execute(script2, Collections.singletonList(userNoteCollectZsetKey), args.toArray());
+            }
         }
 
         // 4. 发送 mq 落库
@@ -763,7 +777,7 @@ public class NoteServiceImpl implements NoteService {
         threadPoolTaskExecutor.submit(() -> {
             boolean hasKey = redisTemplate.hasKey(userNoteCollectZsetKey);
             if(!hasKey) {
-                List<NoteCollectionDO> noteCollectionDOS = noteCollectionDOMapper.selectCollectedByUserIdAndLimit(userId, 300);
+                List<NoteCollectionDO> noteCollectionDOS = noteCollectionDOMapper.selectCollectedByUserIdAndLimit(userId, 300L);
                 if(CollUtil.isNotEmpty(noteCollectionDOS)) {
                     long expireTime = getRandomExpireTime();
                     Object[] args = buildNoteCollectZsetArgs(noteCollectionDOS, expireTime);
@@ -771,7 +785,6 @@ public class NoteServiceImpl implements NoteService {
                     script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/batch_add_note_collect_zset_and_expire.lua")));
                     script.setResultType(Long.class);
                     redisTemplate.execute(script, Collections.singletonList(userNoteCollectZsetKey), args);
-
                 }
             }
         });
