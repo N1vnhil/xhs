@@ -8,4 +8,5 @@ public interface NoteCountDOMapper {
 
     int insertOrUpdateLikeTotalById(@Param("count") Integer count, @Param("noteId") Long noteId);
 
+    int insertOrUpdateCollectTotalById(@Param("count") Integer count, @Param("noteId") Long noteId);
 }

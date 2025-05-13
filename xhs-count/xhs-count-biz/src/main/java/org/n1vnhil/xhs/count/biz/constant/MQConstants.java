@@ -3,29 +3,42 @@ package org.n1vnhil.xhs.count.biz.constant;
 public interface MQConstants {
 
     /**
-     * 关注计数 Topic
+     * Topic: 关注计数
      */
     String TOPIC_COUNT_FOLLOWING = "CountFollowingCount";
 
     /**
-     * 粉丝计数 Topic
+     * Topic: 粉丝计数
      */
     String TOPIC_COUNT_FANS = "CountFansCount";
 
     /**
-     * 粉丝计数入库 Topic
+     * Topic: 粉丝计数入库
      */
     String TOPIC_COUNT_FANS_2_DB = "CountFans2DB";
 
+    /**
+     * Topic: 关注计数落库
+     */
     String TOPIC_COUNT_FOLLOWING_2_DB = "CountFollowing2DBTopic";
 
     /**
-     * 笔记点赞计数 Topic
+     * Topic: 笔记点赞计数
      */
     String TOPIC_COUNT_NOTE_LIKE = "CountNoteLikeTopic";
 
     /**
-     * 点赞计数入库 Topic
+     * Topic: 点赞计数入库
      */
     String TOPIC_COUNT_NOTE_LIKE_2_DB = "CountNoteLike2DBTopic";
+
+    /**
+     * Topic: 笔记收藏计数
+     */
+    String TOPIC_COUNT_NOTE_COLLECT = "CountNoteCollectTopic";
+
+    /**
+     * Topic: 收藏计数落库
+     */
+    String TOPIC_COUNT_NOTE_COLLECT_2_DB = "CountNoteCollect2DBTopic";
 }

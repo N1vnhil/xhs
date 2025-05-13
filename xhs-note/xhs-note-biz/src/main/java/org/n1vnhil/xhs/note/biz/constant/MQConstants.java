@@ -29,6 +29,11 @@ public interface MQConstants {
     String TOPIC_COUNT_NOTE_LIKE = "CountNoteLikeTopic";
 
     /**
+     * Topic: 计数 - 笔记收藏
+     */
+    String TOPIC_COUNT_NOTE_COLLECT = "CountNoteCollectTopic";
+
+    /**
      * Topic: 收藏 / 取消收藏
      */
     String TOPIC_COLLECT_OR_UNCOLLECT = "CollectUncollectTopic";

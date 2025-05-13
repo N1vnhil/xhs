@@ -25,7 +25,16 @@ public class RedisKeyConstants {
     /**
      * 笔记计数 key 前缀
      */
-    private static final String COUNT_NOTE_KEY_PREFIX = "count:note";
+    private static final String COUNT_NOTE_KEY_PREFIX = "count:note:";
+
+    /**
+     * 构造笔记维度计数 redis key
+     * @param noteId
+     * @return
+     */
+    public static String buildCountNoteKey(Long noteId) {
+        return COUNT_NOTE_KEY_PREFIX + noteId;
+    }
 
     /**
      * Hash Field: 点赞总数
@@ -33,11 +42,9 @@ public class RedisKeyConstants {
     public static final String FIELD_LIKE_TOTAL = "likeTotal";
 
     /**
-     * 获取笔记计数 key
-     * @param noteId
-     * @return
+     * Hash Field: 笔记收藏总数
      */
-    private static String buildCountNoteKey(Long noteId) {
-        return COUNT_NOTE_KEY_PREFIX + noteId;
-    }
+    public static final String FIELD_COLLECT_TOTAL = "collectTotal";
+
+
 }
