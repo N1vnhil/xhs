@@ -26,4 +26,10 @@ public class RedisKeyConstants {
         return BLOOM_USER_NOTE_COLLECT_LIST_KEY + userId;
     }
 
+    public static final String USER_NOTE_COLLECT_ZSET_KEY = "user:note:collects";
+
+    public static final String buildUserNoteCollectZestKey(String userId) {
+        return USER_NOTE_COLLECT_ZSET_KEY + userId;
+    }
+
 }

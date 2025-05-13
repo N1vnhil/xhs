@@ -694,6 +694,7 @@ public class NoteServiceImpl implements NoteService {
         // 布隆过滤器判空
         Long userId = LoginUserContextHolder.getLoginUserId();
         String bloomUserNoteCollectListKey = RedisKeyConstants.buildBloomUserNoteCollectListKey(userId);
+        String userNoteCollectZsetKey = RedisKeyConstants.buildUserNoteCollectZestKey(userId);
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
         script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_collect_check.lua")));
         script.setResultType(Long.class);
@@ -704,8 +705,7 @@ public class NoteServiceImpl implements NoteService {
             case NOTE_NOT_EXIST -> {
                 int count = noteCollectionDOMapper.selectCountByNoteIdAndUserId(noteId, userId);
                 int expireSeconds = getRandomExpireTime();
-                if(count > 1) {
-                    // TODO: 初始化布隆过滤器
+                if(count > 0) {
                     threadPoolTaskExecutor.submit(() -> batchAddNoteCollect2BloomAndExpire(userId, expireSeconds, bloomUserNoteCollectListKey));
                     throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
                 }
@@ -717,7 +717,15 @@ public class NoteServiceImpl implements NoteService {
 
             // 笔记已收藏，检查是否误判
             case NOTE_COLLECTED -> {
-
+                Double score = redisTemplate.opsForZSet().score(userNoteCollectZsetKey, noteId);
+                if(Objects.nonNull(score)) {
+                    throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
+                }
+                int count = noteCollectionDOMapper.selectCountByNoteIdAndUserId(noteId, userId);
+                if(count > 0) {
+                    asynInitUserNoteCollectsZset(userId, userNoteCollectZsetKey);
+                    throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
+                }
             }
         }
 
@@ -742,5 +750,36 @@ public class NoteServiceImpl implements NoteService {
         } catch (Exception e) {
             log.error("## 异步初始化【笔记收藏】布隆过滤器异常: ", e);
         }
+    }
+
+    private void asynInitUserNoteCollectsZset(Long userId, String userNoteCollectZsetKey) {
+        threadPoolTaskExecutor.submit(() -> {
+            boolean hasKey = redisTemplate.hasKey(userNoteCollectZsetKey);
+            if(!hasKey) {
+                List<NoteCollectionDO> noteCollectionDOS = noteCollectionDOMapper.selectCollectedByUserIdAndLimit(userId, 300);
+                if(CollUtil.isNotEmpty(noteCollectionDOS)) {
+                    long expireTime = getRandomExpireTime();
+                    Object[] args = buildNoteCollectZsetArgs(noteCollectionDOS, expireTime);
+                    DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+                    script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/batch_add_note_collect_zset_and_expire.lua")));
+                    script.setResultType(Long.class);
+                    redisTemplate.execute(script, Collections.singletonList(userNoteCollectZsetKey), args);
+
+                }
+            }
+        });
+    }
+
+    private static Object[] buildNoteCollectZsetArgs(List<NoteCollectionDO> noteCollectionDOS, long expireSeconds) {
+        int argsLength = noteCollectionDOS.size() * 2 + 1;
+        Object[] luaArgs = new Object[argsLength];
+        int i = 0;
+        for(NoteCollectionDO noteCollectionDO: noteCollectionDOS) {
+            luaArgs[i] = DateUtils.localDateTime2Timestamp(noteCollectionDO.getCreateTime());
+            luaArgs[i + 1] = noteCollectionDO.getNoteId();
+            i += 2;
+        }
+        luaArgs[argsLength - 1] = expireSeconds;
+        return luaArgs;
     }
 }
