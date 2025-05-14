@@ -35,4 +35,11 @@ public interface InsertRecordMapper {
      */
     void insert2DataAlignUserCollectCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("userId") Long userId);
 
+    /**
+     * 用户笔记发布计数
+     * @param tableNameSuffix
+     * @param userId
+     */
+    void insert2DataAlignUserPublishCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("userId") Long userId);
+
 }

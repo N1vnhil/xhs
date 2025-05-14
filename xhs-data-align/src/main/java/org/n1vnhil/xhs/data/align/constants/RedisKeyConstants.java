@@ -14,4 +14,10 @@ public class RedisKeyConstants {
         return BLOOM_TODAY_NOTE_COLLECT_LIST_KEY + date;
     }
 
+    public static final String BLOOM_TODAY_USER_NOTE_OPERATE_LIST_KEY = "bloom:dataAlign:user:note:operators:";
+
+    public static String buildBloomUserNoteOperateListKey(String date) {
+        return BLOOM_TODAY_USER_NOTE_OPERATE_LIST_KEY + date;
+    }
+
 }

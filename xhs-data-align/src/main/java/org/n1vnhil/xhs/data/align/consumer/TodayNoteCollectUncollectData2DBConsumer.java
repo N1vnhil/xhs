@@ -28,8 +28,8 @@ import java.util.Collections;
 import java.util.Objects;
 
 @RocketMQMessageListener(
-    consumerGroup = "xhs_data_align_" + MQConstants.TOPIC_COUNT_NOTE_LIKE,
-    topic = MQConstants.TOPIC_COUNT_NOTE_LIKE
+    consumerGroup = "xhs_data_align_" + MQConstants.TOPIC_COUNT_NOTE_COLLECT,
+    topic = MQConstants.TOPIC_COUNT_NOTE_COLLECT
 )
 @Component
 @Slf4j
