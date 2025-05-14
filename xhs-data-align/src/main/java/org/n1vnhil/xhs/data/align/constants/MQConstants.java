@@ -16,4 +16,9 @@ public interface MQConstants {
      * Topic: 笔记操作
      */
     String TOPIC_NOTE_OPERATE = "NoteOperateTopic";
+
+    /**
+     * Topic: 用户关注
+     */
+    String TOPIC_COUNT_FOLLOW = "CountFollowingTopic";
 }

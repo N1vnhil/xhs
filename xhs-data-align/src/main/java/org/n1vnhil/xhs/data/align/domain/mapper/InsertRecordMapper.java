@@ -42,4 +42,14 @@ public interface InsertRecordMapper {
      */
     void insert2DataAlignUserPublishCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("userId") Long userId);
 
+    /**
+     * 用户关注计数
+     */
+    void insert2DataAlignUserFollowingCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("userId") Long userId);
+
+    /**
+     * 用户粉丝计数
+     */
+    void insert2DataAlignUserFansCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("userId") Long userId);
+
 }

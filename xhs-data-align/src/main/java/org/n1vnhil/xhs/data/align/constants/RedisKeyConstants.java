@@ -20,4 +20,10 @@ public class RedisKeyConstants {
         return BLOOM_TODAY_USER_NOTE_OPERATE_LIST_KEY + date;
     }
 
+    public static final String BLOOM_TODAY_USER_FOLLOW_LIST_KEY = "bloom:dataAlign:user:follow:";
+
+    public static String buildBloomUserFollowListKey(String date) {
+        return BLOOM_TODAY_USER_FOLLOW_LIST_KEY + date;
+    }
+
 }
