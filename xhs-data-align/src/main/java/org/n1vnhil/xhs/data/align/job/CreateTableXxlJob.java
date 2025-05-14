@@ -28,7 +28,7 @@ public class CreateTableXxlJob {
         XxlJobHelper.log("## 开始初始化明日增量数据表");
 
         if(tableShards > 0) {
-            for(int i = 0; i < tableShards; i++) {
+            for(long i = 0; i < tableShards; i++) {
                 String tableNameSuffix = TableConstants.buildTableNameSuffix(date, i);
                 createTableMapper.createDataAlignFollowingCountTemplateTable(tableNameSuffix);
                 createTableMapper.createDataAlignNoteCollectCountTemplateTable(tableNameSuffix);

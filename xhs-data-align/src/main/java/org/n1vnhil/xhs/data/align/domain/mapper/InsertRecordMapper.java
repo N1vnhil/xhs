@@ -20,4 +20,19 @@ public interface InsertRecordMapper {
      */
     void insert2DataAlignUserLikeCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("userId") Long userId);
 
+
+    /**
+     * 笔记收藏计数
+     * @param tableNameSuffix
+     * @param noteId
+     */
+    void insert2DataAlignNoteCollectCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("noteId") Long noteId);
+
+    /**
+     * 用户收藏计数
+     * @param tableNameSuffix
+     * @param userId
+     */
+    void insert2DataAlignUserCollectCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("userId") Long userId);
+
 }

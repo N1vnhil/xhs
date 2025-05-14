@@ -8,4 +8,10 @@ public class RedisKeyConstants {
         return BLOOM_TODAY_NOTE_LIKE_LIST_KEY + date;
     }
 
+    public static final String BLOOM_TODAY_NOTE_COLLECT_LIST_KEY = "bloom:dataAlign:note:collects";
+
+    public static String buildBloomUserNoteCollectListKey(String date) {
+        return BLOOM_TODAY_NOTE_COLLECT_LIST_KEY + date;
+    }
+
 }
