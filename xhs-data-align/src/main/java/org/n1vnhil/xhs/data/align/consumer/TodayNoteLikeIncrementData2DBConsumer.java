@@ -1,14 +1,13 @@
 package org.n1vnhil.xhs.data.align.consumer;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhs.data.align.constants.MQConstants;
 import org.n1vnhil.xhs.data.align.constants.RedisKeyConstants;
 import org.n1vnhil.xhs.data.align.constants.TableConstants;
-import org.n1vnhil.xhs.data.align.domain.mapper.InsertRecordMapper;
+import org.n1vnhil.xhs.data.align.domain.mapper.InsertMapper;
 import org.n1vnhil.xhs.data.align.model.dto.LikeUnlikeNoteMqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,7 +36,7 @@ public class TodayNoteLikeIncrementData2DBConsumer implements RocketMQListener<S
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
-    private InsertRecordMapper insertRecordMapper;
+    private InsertMapper insertMapper;
 
     @Autowired
     private TransactionTemplate transactionTemplate;
@@ -67,9 +66,9 @@ public class TodayNoteLikeIncrementData2DBConsumer implements RocketMQListener<S
             Long noteIdHashKey = noteId % tableShards;
             transactionTemplate.execute(status -> {
                try {
-                   insertRecordMapper.insert2DataAlignNoteLikeCountTempTable(TableConstants
+                   insertMapper.insert2DataAlignNoteLikeCountTempTable(TableConstants
                            .buildTableNameSuffix(date, noteIdHashKey), noteId);
-                   insertRecordMapper.insert2DataAlignUserLikeCountTempTable(TableConstants
+                   insertMapper.insert2DataAlignUserLikeCountTempTable(TableConstants
                            .buildTableNameSuffix(date, userIdHashKey), noteCreatorId);
                    return true;
                } catch (Exception e) {

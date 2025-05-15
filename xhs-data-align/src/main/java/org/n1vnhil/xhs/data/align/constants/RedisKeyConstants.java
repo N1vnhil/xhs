@@ -26,4 +26,12 @@ public class RedisKeyConstants {
         return BLOOM_TODAY_USER_FOLLOW_LIST_KEY + date;
     }
 
+    private static final String COUNT_USER_KEY_PREFIX = "count:user:";
+
+    public static final String FIELD_FOLLOWING_TOTAL = "followingTotal";
+
+    public static String buildCountUserKey(Long userId) {
+        return COUNT_USER_KEY_PREFIX + userId;
+    }
+
 }

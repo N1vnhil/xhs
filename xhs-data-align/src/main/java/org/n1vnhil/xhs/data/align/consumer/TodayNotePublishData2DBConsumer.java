@@ -7,7 +7,7 @@ import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhs.data.align.constants.MQConstants;
 import org.n1vnhil.xhs.data.align.constants.RedisKeyConstants;
 import org.n1vnhil.xhs.data.align.constants.TableConstants;
-import org.n1vnhil.xhs.data.align.domain.mapper.InsertRecordMapper;
+import org.n1vnhil.xhs.data.align.domain.mapper.InsertMapper;
 import org.n1vnhil.xhs.data.align.model.dto.NoteOperateMqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +35,7 @@ public class TodayNotePublishData2DBConsumer implements RocketMQListener<String>
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
-    private InsertRecordMapper insertRecordMapper;
+    private InsertMapper insertMapper;
 
     @Value("${table.shards}")
     private int tableShards;
@@ -57,7 +57,7 @@ public class TodayNotePublishData2DBConsumer implements RocketMQListener<String>
         Long result = redisTemplate.execute(script, Collections.singletonList(bloomKey), noteCreatorId);
         if(result.equals(0L)) {
             String tableSuffix = TableConstants.buildTableNameSuffix(date, noteCreatorId % tableShards);
-            insertRecordMapper.insert2DataAlignUserPublishCountTempTable(tableSuffix, noteCreatorId);
+            insertMapper.insert2DataAlignUserPublishCountTempTable(tableSuffix, noteCreatorId);
             RedisScript<Long> bloomAddScript = RedisScript.of("return redis.call('BF.ADD', KEYS[1], ARGV[1])", Long.class);
             redisTemplate.execute(bloomAddScript, Collections.singletonList(bloomKey), noteCreatorId);
         }

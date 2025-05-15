@@ -1,6 +1,5 @@
 package org.n1vnhil.xhs.data.align.consumer;
 
-import jakarta.validation.groups.Default;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
@@ -8,7 +7,7 @@ import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhs.data.align.constants.MQConstants;
 import org.n1vnhil.xhs.data.align.constants.RedisKeyConstants;
 import org.n1vnhil.xhs.data.align.constants.TableConstants;
-import org.n1vnhil.xhs.data.align.domain.mapper.InsertRecordMapper;
+import org.n1vnhil.xhs.data.align.domain.mapper.InsertMapper;
 import org.n1vnhil.xhs.data.align.model.dto.FollowUnfollowMqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +39,7 @@ public class TodayNoteFollowingData2DBConsumer implements RocketMQListener<Strin
     private TransactionTemplate transactionTemplate;
 
     @Autowired
-    private InsertRecordMapper insertRecordMapper;
+    private InsertMapper insertMapper;
 
     @Value("${table.shards}")
     private int tableShards;
@@ -67,8 +66,8 @@ public class TodayNoteFollowingData2DBConsumer implements RocketMQListener<Strin
             transactionTemplate.execute(status -> {
 
                 try {
-                    insertRecordMapper.insert2DataAlignUserFollowingCountTempTable(followingSuffix, userId);
-                    insertRecordMapper.insert2DataAlignUserFansCountTempTable(fansSuffix, targetId);
+                    insertMapper.insert2DataAlignUserFollowingCountTempTable(followingSuffix, userId);
+                    insertMapper.insert2DataAlignUserFansCountTempTable(fansSuffix, targetId);
                     return true;
                 } catch (Exception e) {
                     status.setRollbackOnly();

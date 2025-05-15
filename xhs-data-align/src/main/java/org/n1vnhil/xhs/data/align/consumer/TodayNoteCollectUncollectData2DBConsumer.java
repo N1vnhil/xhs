@@ -1,15 +1,13 @@
 package org.n1vnhil.xhs.data.align.consumer;
 
-import com.mysql.cj.xdevapi.Table;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
-import org.bouncycastle.jcajce.provider.symmetric.Serpent;
 import org.n1vnhil.framework.common.util.JsonUtils;
 import org.n1vnhil.xhs.data.align.constants.MQConstants;
 import org.n1vnhil.xhs.data.align.constants.RedisKeyConstants;
 import org.n1vnhil.xhs.data.align.constants.TableConstants;
-import org.n1vnhil.xhs.data.align.domain.mapper.InsertRecordMapper;
+import org.n1vnhil.xhs.data.align.domain.mapper.InsertMapper;
 import org.n1vnhil.xhs.data.align.model.dto.CollectUncollectNoteMqDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +20,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Objects;
@@ -39,7 +36,7 @@ public class TodayNoteCollectUncollectData2DBConsumer implements RocketMQListene
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
-    private InsertRecordMapper insertRecordMapper;
+    private InsertMapper insertMapper;
 
     @Autowired
     private TransactionTemplate transactionTemplate;
@@ -68,8 +65,8 @@ public class TodayNoteCollectUncollectData2DBConsumer implements RocketMQListene
 
             transactionTemplate.execute(status -> {
                 try {
-                    insertRecordMapper.insert2DataAlignNoteCollectCountTempTable(noteCollectKey, noteId);
-                    insertRecordMapper.insert2DataAlignUserCollectCountTempTable(userCollectKey, noteCreatorId);
+                    insertMapper.insert2DataAlignNoteCollectCountTempTable(noteCollectKey, noteId);
+                    insertMapper.insert2DataAlignUserCollectCountTempTable(userCollectKey, noteCreatorId);
                     return true;
                 } catch (Exception e) {
                     status.setRollbackOnly();
