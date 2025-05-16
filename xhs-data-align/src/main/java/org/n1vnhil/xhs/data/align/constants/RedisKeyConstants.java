@@ -13,10 +13,15 @@ public class RedisKeyConstants {
         return BLOOM_TODAY_NOTE_LIKE_NOTE_ID_LIST_KEY + date;
     }
 
-    public static final String BLOOM_TODAY_NOTE_COLLECT_LIST_KEY = "bloom:dataAlign:note:collects";
+    public static final String BLOOM_TODAY_NOTE_COLLECT_USER_ID_LIST_KEY = "bloom:dataAlign:note:collects:userIds";
+    public static final String BLOOM_TODAY_NOTE_COLLECT_NOTE_ID_LIST_KEY = "bloom:dataAlign:note:collects:noteIds";
 
-    public static String buildBloomUserNoteCollectListKey(String date) {
-        return BLOOM_TODAY_NOTE_COLLECT_LIST_KEY + date;
+    public static String buildBloomUserNoteCollectUserIdsListKey(String date) {
+        return BLOOM_TODAY_NOTE_COLLECT_USER_ID_LIST_KEY + date;
+    }
+
+    public static String buildBloomUserNoteCollectNoteIdsListKey(String date) {
+        return BLOOM_TODAY_NOTE_COLLECT_NOTE_ID_LIST_KEY + date;
     }
 
     public static final String BLOOM_TODAY_USER_NOTE_OPERATE_LIST_KEY = "bloom:dataAlign:user:note:operators:";

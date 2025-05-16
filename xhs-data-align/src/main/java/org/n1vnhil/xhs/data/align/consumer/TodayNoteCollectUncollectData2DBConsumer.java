@@ -53,30 +53,37 @@ public class TodayNoteCollectUncollectData2DBConsumer implements RocketMQListene
         Long noteId = collectUncollectNoteMqDTO.getNoteId();
         Long noteCreatorId = collectUncollectNoteMqDTO.getNoteCreatorId();
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String bloomKey = RedisKeyConstants.buildBloomUserNoteCollectListKey(date);
+
+        String noteIdsBloomKey = RedisKeyConstants.buildBloomUserNoteCollectNoteIdsListKey(date);
+        String userIdsBloomKey = RedisKeyConstants.buildBloomUserNoteCollectUserIdsListKey(date);
+
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
         script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_today_note_collect_check.lua")));
         script.setResultType(Long.class);
-        Long result = redisTemplate.execute(script, Collections.singletonList(bloomKey), noteId);
+        Long resultNote = redisTemplate.execute(script, Collections.singletonList(noteIdsBloomKey), noteId);
+        Long resultUser = redisTemplate.execute(script, Collections.singletonList(userIdsBloomKey), noteCreatorId);
+        RedisScript<Long> bloomAddScript = RedisScript.of("return redis.call('BF.ADD', KEYS[1], ARGV[1])", Long.class);
 
-        if(Objects.equals(result, 0L)) {
-            String noteCollectKey = TableConstants.buildTableNameSuffix(date, noteId % tableShards);
-            String userCollectKey = TableConstants.buildTableNameSuffix(date, noteCreatorId % tableShards);
+        if(Objects.equals(resultNote, 0L)) {
+            try {
+                insertMapper.insert2DataAlignNoteCollectCountTempTable(TableConstants
+                        .buildTableNameSuffix(date, noteId % tableShards), noteId);
+            } catch (Exception e) {
+                log.error("", e);
+            }
 
-            transactionTemplate.execute(status -> {
-                try {
-                    insertMapper.insert2DataAlignNoteCollectCountTempTable(noteCollectKey, noteId);
-                    insertMapper.insert2DataAlignUserCollectCountTempTable(userCollectKey, noteCreatorId);
-                    return true;
-                } catch (Exception e) {
-                    status.setRollbackOnly();
-                    log.error("", e);
-                }
-                return false;
-            });
+            redisTemplate.execute(bloomAddScript, Collections.singletonList(noteIdsBloomKey), noteId);
+        }
 
-            RedisScript<Long> bloomAddScript = RedisScript.of("return redis.call('BF.ADD', KEYS[1], ARGV[1])", Long.class);
-            redisTemplate.execute(bloomAddScript, Collections.singletonList(bloomKey), noteId);
+        if(Objects.equals(resultUser, 0L)) {
+            try {
+                insertMapper.insert2DataAlignUserCollectCountTempTable(TableConstants
+                        .buildTableNameSuffix(date, noteCreatorId % tableShards), noteCreatorId);
+            } catch (Exception e) {
+                log.error("", e);
+            }
+
+            redisTemplate.execute(bloomAddScript, Collections.singletonList(userIdsBloomKey), noteCreatorId);
         }
     }
 

@@ -54,7 +54,7 @@ public class TodayNoteLikeIncrementData2DBConsumer implements RocketMQListener<S
         Long noteCreatorId = likeUnlikeNoteMqDTO.getNoteCreatorId();
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String userIdKey = RedisKeyConstants.buildBloomNoteLikeUserIdListKey(date);
-        String noteIdKey = RedisKeyConstants.buildBloomNoteLikeUserIdListKey(date);
+        String noteIdKey = RedisKeyConstants.buildBloomNoteLikeNoteIdListKey(date);
 
         // 布隆过滤器判空
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
