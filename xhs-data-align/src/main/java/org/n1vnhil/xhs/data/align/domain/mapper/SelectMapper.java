@@ -13,4 +13,8 @@ public interface SelectMapper {
 
     int selectCountFromFollowingTableByUserId(@Param("userId") Long userId);
 
+    List<Long> selectBatchFromDataAlignNoteLikeCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("batchSize") int batchSize);
+
+    int selectCountFromLikeTableByNoteId(long noteId);
+
 }

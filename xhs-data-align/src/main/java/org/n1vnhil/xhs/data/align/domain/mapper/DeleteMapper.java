@@ -10,4 +10,7 @@ public interface DeleteMapper {
 
     void batchDeleteDataAlignFollowingCountTempTable(@Param("tableNameSuffix") String tableNameSuffix, @Param("userIds")List<Long> userIds);
 
+    void batchDeleteDataAlignNoteLikeCountTempTable(@Param("tableNameSuffix") String tableNameSuffix,
+                                                @Param("userIds")List<Long> noteIds);
+
 }
