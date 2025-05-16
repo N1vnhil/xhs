@@ -54,32 +54,36 @@ public class TodayNoteFollowingData2DBConsumer implements RocketMQListener<Strin
         Long targetId = followUnfollowMqDTO.getTargetUserId();
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-        String userBloomKey = RedisKeyConstants.buildBloomUserFollowListKey(date);
+        String userBloomKey = RedisKeyConstants.buildBloomUserFollowFollowingListKey(date);
+        String targetUserBloomKey = RedisKeyConstants.buildBloomUserFollowFansListKey(date);
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
         script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_today_user_follow_check.lua")));
         script.setResultType(Long.class);
+        RedisScript<Long> bloomAdd = RedisScript.of("return redis.call('BF.ADD', KEYS[1], ARGV[1])", Long.class);
 
-        Long result = redisTemplate.execute(script, Collections.singletonList(userBloomKey), userId);
-        if(result.equals(0L)) {
-            String followingSuffix = TableConstants.buildTableNameSuffix(date, userId % tableShards);
-            String fansSuffix = TableConstants.buildTableNameSuffix(date, targetId % tableShards);
-            transactionTemplate.execute(status -> {
+        Long resultUser = redisTemplate.execute(script, Collections.singletonList(userBloomKey), userId);
+        Long resultTargetUser = redisTemplate.execute(script, Collections.singletonList(targetUserBloomKey), targetId);
 
-                try {
-                    insertMapper.insert2DataAlignUserFollowingCountTempTable(followingSuffix, userId);
-                    insertMapper.insert2DataAlignUserFansCountTempTable(fansSuffix, targetId);
-                    return true;
-                } catch (Exception e) {
-                    status.setRollbackOnly();
-                    log.error("", e);
-                }
-                return false;
-            });
+        if(resultUser.equals(0L)) {
+            try {
+                insertMapper.insert2DataAlignUserFollowingCountTempTable(TableConstants
+                        .buildTableNameSuffix(date, userId % tableShards), userId);
+            } catch (Exception e) {
+                log.error("", e);
+            }
 
-            RedisScript<Long> bloomAdd = RedisScript.of("return redis.call('BF.ADD', KEYS[1], ARGV[1])", Long.class);
-            redisTemplate.execute(bloomAdd, Collections.singletonList(followingSuffix), userId);
-            redisTemplate.execute(bloomAdd, Collections.singletonList(fansSuffix), targetId);
+            redisTemplate.execute(bloomAdd, Collections.singletonList(userBloomKey), userId);
         }
 
+        if(resultTargetUser.equals(0L)) {
+            try {
+                insertMapper.insert2DataAlignUserFansCountTempTable(TableConstants
+                        .buildTableNameSuffix(date, targetId % tableShards), targetId);
+            } catch (Exception e) {
+                log.error("", e);
+            }
+        }
+
+        redisTemplate.execute(bloomAdd, Collections.singletonList(targetUserBloomKey), targetId);
     }
 }

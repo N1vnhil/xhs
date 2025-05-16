@@ -30,10 +30,16 @@ public class RedisKeyConstants {
         return BLOOM_TODAY_USER_NOTE_OPERATE_LIST_KEY + date;
     }
 
-    public static final String BLOOM_TODAY_USER_FOLLOW_LIST_KEY = "bloom:dataAlign:user:follow:";
+    public static final String BLOOM_TODAY_USER_FOLLOW_FANS_LIST_KEY = "bloom:dataAlign:user:follow:fans";
+    public static final String BLOOM_TODAY_USER_FOLLOW_FOLLOWING_LIST_KEY = "bloom:dataAlign:user:follow:following";
 
-    public static String buildBloomUserFollowListKey(String date) {
-        return BLOOM_TODAY_USER_FOLLOW_LIST_KEY + date;
+
+    public static String buildBloomUserFollowFansListKey(String date) {
+        return BLOOM_TODAY_USER_FOLLOW_FANS_LIST_KEY + date;
+    }
+
+    public static String buildBloomUserFollowFollowingListKey(String date) {
+        return BLOOM_TODAY_USER_FOLLOW_FOLLOWING_LIST_KEY + date;
     }
 
     private static final String COUNT_USER_KEY_PREFIX = "count:user:";
