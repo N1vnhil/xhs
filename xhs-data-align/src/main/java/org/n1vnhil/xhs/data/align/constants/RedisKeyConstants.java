@@ -2,10 +2,15 @@ package org.n1vnhil.xhs.data.align.constants;
 
 public class RedisKeyConstants {
 
-    public static final String BLOOM_TODAY_NOTE_LIKE_LIST_KEY = "bloom:dataAlign:note:likes";
+    public static final String BLOOM_TODAY_NOTE_LIKE_USER_ID_LIST_KEY = "bloom:dataAlign:note:likes:userIds";
+    public static final String BLOOM_TODAY_NOTE_LIKE_NOTE_ID_LIST_KEY = "bloom:dataAlign:note:likes:noteIds";
 
-    public static String buildBloomUserNoteLikeListKey(String date) {
-        return BLOOM_TODAY_NOTE_LIKE_LIST_KEY + date;
+    public static String buildBloomNoteLikeUserIdListKey(String date) {
+        return BLOOM_TODAY_NOTE_LIKE_USER_ID_LIST_KEY + date;
+    }
+
+    public static String buildBloomNoteLikeNoteIdListKey(String date) {
+        return BLOOM_TODAY_NOTE_LIKE_NOTE_ID_LIST_KEY + date;
     }
 
     public static final String BLOOM_TODAY_NOTE_COLLECT_LIST_KEY = "bloom:dataAlign:note:collects";

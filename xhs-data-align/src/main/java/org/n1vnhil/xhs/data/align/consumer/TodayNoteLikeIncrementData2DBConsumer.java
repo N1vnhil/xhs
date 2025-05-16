@@ -53,34 +53,39 @@ public class TodayNoteLikeIncrementData2DBConsumer implements RocketMQListener<S
         Long noteId = likeUnlikeNoteMqDTO.getNoteId();;
         Long noteCreatorId = likeUnlikeNoteMqDTO.getNoteCreatorId();
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String bloomKey = RedisKeyConstants.buildBloomUserNoteLikeListKey(date);
+        String userIdKey = RedisKeyConstants.buildBloomNoteLikeUserIdListKey(date);
+        String noteIdKey = RedisKeyConstants.buildBloomNoteLikeUserIdListKey(date);
 
         // 布隆过滤器判空
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
         script.setScriptSource(new ResourceScriptSource(new ClassPathResource("/lua/bloom_today_note_like_check.lua")));
         script.setResultType(Long.class);
-        Long result = redisTemplate.execute(script, Collections.singletonList(bloomKey), noteId);
-        if(Objects.equals(result, 0L)) {
-            // 数据落库
-            Long userIdHashKey = noteCreatorId % tableShards;
-            Long noteIdHashKey = noteId % tableShards;
-            transactionTemplate.execute(status -> {
-               try {
-                   insertMapper.insert2DataAlignNoteLikeCountTempTable(TableConstants
-                           .buildTableNameSuffix(date, noteIdHashKey), noteId);
-                   insertMapper.insert2DataAlignUserLikeCountTempTable(TableConstants
-                           .buildTableNameSuffix(date, userIdHashKey), noteCreatorId);
-                   return true;
-               } catch (Exception e) {
-                   status.setRollbackOnly();
-                   log.error("", e);
-               }
-               return false;
-            });
+        RedisScript<Long> bloomAddScript = RedisScript.of("return redis.call('BF.ADD', KEYS[1], ARGV[1])", Long.class);
 
+        // 用户点赞数维护
+        Long resultUser = redisTemplate.execute(script, Collections.singletonList(userIdKey), noteCreatorId);
+        if(Objects.equals(resultUser, 0L)) {
+            try {
+                insertMapper.insert2DataAlignUserLikeCountTempTable(TableConstants
+                        .buildTableNameSuffix(date, noteCreatorId % tableShards), noteCreatorId);
+            } catch (Exception e) {
+                log.error("", e);
+            }
             // 插入布隆过滤器
-            RedisScript<Long> bloomAddScript = RedisScript.of("return redis.call('BF.ADD', KEYS[1], ARGV[1])", Long.class);
-            redisTemplate.execute(bloomAddScript, Collections.singletonList(bloomKey), noteId);
+            redisTemplate.execute(bloomAddScript, Collections.singletonList(userIdKey), noteCreatorId);
+        }
+
+        // 笔记点赞数维护
+        Long resultNote = redisTemplate.execute(script, Collections.singletonList(noteIdKey), noteId);
+        if(Objects.equals(resultNote, 0L)) {
+            try {
+                insertMapper.insert2DataAlignNoteLikeCountTempTable(TableConstants
+                        .buildTableNameSuffix(date, noteId % tableShards), noteId);
+            } catch (Exception e) {
+                log.error("", e);
+            }
+
+            redisTemplate.execute(bloomAddScript, Collections.singletonList(userIdKey), noteCreatorId);
         }
 
     }
