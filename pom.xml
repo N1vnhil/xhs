@@ -29,6 +29,7 @@
         <module>xhs-user-relation</module>
         <module>xhs-count</module>
         <module>xhs-data-align</module>
+        <module>xhs-search</module>
     </modules>
 
     <properties>
