@@ -1,5 +1,6 @@
 package org.n1vnhil.xhs.search.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.action.search.SearchRequest;
@@ -11,6 +12,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -47,6 +49,13 @@ public class UserServiceImpl implements UserService {
         int pageSize = 10, from = (pageNo - 1) * pageSize;
         searchSourceBuilder.from(from);
         searchSourceBuilder.size(pageSize);
+
+        HighlightBuilder highlightBuilder =  new HighlightBuilder();
+        highlightBuilder.field(UserIndex.FIELD_USER_NICKNAME)
+                    .preTags("<strong>")
+                    .postTags("</strong>");
+        searchSourceBuilder.highlighter(highlightBuilder);
+
         searchRequest.source(searchSourceBuilder);
 
         List<SearchUserRspVO> res = null;
@@ -67,6 +76,12 @@ public class UserServiceImpl implements UserService {
                 String xhsId = (String) map.get(UserIndex.FIELD_USER_XHS_ID);
                 Integer noteTotal = ((Number) map.get(UserIndex.FIELD_USER_NOTE_TOTAL)).intValue();
                 Integer fansTotal = ((Number) map.get(UserIndex.FIELD_USER_FANS_TOTAL)).intValue();
+                String highlightNickname = null;
+                if(CollUtil.isNotEmpty(hit.getHighlightFields())
+                        && hit.getHighlightFields().containsKey(UserIndex.FIELD_USER_NICKNAME)) {
+                    highlightNickname = hit.getHighlightFields().get(UserIndex.FIELD_USER_NICKNAME).fragments()[0].string();
+                }
+
 
                 SearchUserRspVO searchUserRspVO = SearchUserRspVO.builder()
                         .userId(userId)
@@ -75,6 +90,7 @@ public class UserServiceImpl implements UserService {
                         .avatar(avatar)
                         .fansTotal(fansTotal)
                         .noteTotal(noteTotal)
+                        .highlightNickname(highlightNickname)
                         .build();
 
                 res.add(searchUserRspVO);

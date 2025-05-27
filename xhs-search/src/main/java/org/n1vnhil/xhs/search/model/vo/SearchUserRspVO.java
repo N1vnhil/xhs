@@ -23,4 +23,6 @@ public class SearchUserRspVO {
 
     private Integer fansTotal;
 
+    private String highlightNickname;
+
 }
