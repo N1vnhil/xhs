@@ -17,6 +17,7 @@ import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.n1vnhil.framework.common.response.PageResponse;
+import org.n1vnhil.framework.common.util.NumberUtils;
 import org.n1vnhil.xhs.search.index.UserIndex;
 import org.n1vnhil.xhs.search.model.vo.SearchUserReqVO;
 import org.n1vnhil.xhs.search.model.vo.SearchUserRspVO;
@@ -88,7 +89,7 @@ public class UserServiceImpl implements UserService {
                         .nickname(nickname)
                         .xhsId(xhsId)
                         .avatar(avatar)
-                        .fansTotal(fansTotal)
+                        .fansTotal(NumberUtils.formatNumberString(fansTotal))
                         .noteTotal(noteTotal)
                         .highlightNickname(highlightNickname)
                         .build();

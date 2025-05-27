@@ -21,7 +21,7 @@ public class SearchUserRspVO {
 
     private Integer noteTotal;
 
-    private Integer fansTotal;
+    private String fansTotal;
 
     private String highlightNickname;
 
