@@ -7,10 +7,10 @@ import org.n1vnhil.xhs.search.model.vo.SearchUserReqVO;
 import org.n1vnhil.xhs.search.model.vo.SearchUserRspVO;
 import org.n1vnhil.xhs.search.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+@RestController
 @Slf4j
 @RequestMapping("/search")
 public class UserController {
