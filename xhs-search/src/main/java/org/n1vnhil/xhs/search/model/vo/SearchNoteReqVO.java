@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class SearchNoteReqVO {
-
+ 
     @Min(value = 1, message = "页码不能小于1")
     private Integer pageNo;
 

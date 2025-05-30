@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -25,9 +26,9 @@ public class SearchNoteRspVO {
 
     private String nickname;
 
-    private LocalDate updateTime;
+    private LocalDateTime updateTime;
 
-    private Integer likeTotal;
+    private String likeTotal;
 
 
 }
